@@ -1,0 +1,54 @@
+@startuml Diabetic_Retinopathy_UseCase_Simple
+left to right direction
+skinparam packageStyle rectangle
+skinparam backgroundColor #FEFEFE
+skinparam shadowing false
+
+title Diabetic Retinopathy System - Simple General Use Case
+
+actor SuperAdmin as "Super Admin"
+actor Admin as "Center Admin"
+actor Doctor
+
+rectangle "Diabetic Retinopathy System" {
+  usecase UC1 as "Manage Centers"
+  usecase UC2 as "Manage Center Admins"
+  usecase UC3 as "View Reports"
+  usecase UC4 as "Handle Support"
+
+  usecase UC5 as "Register Patient"
+  usecase UC6 as "Register Doctor"
+  usecase UC7 as "Submit Exam"
+  usecase UC8 as "View Exam History"
+
+  usecase UC9 as "Review Exam"
+  usecase UC10 as "Add Diagnosis Notes"
+  usecase UC11 as "Download Report"
+  usecase UC12 as "Acknowledge Alert"
+
+  usecase UC13 as "Analyze Exam (AI)"
+  usecase UC14 as "Generate Result"
+  usecase UC15 as "Trigger Critical Alert"
+}
+
+SuperAdmin --> UC1
+SuperAdmin --> UC2
+SuperAdmin --> UC3
+SuperAdmin --> UC4
+
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+Admin --> UC8
+
+Doctor --> UC9
+Doctor --> UC10
+Doctor --> UC11
+Doctor --> UC12
+
+UC7 ..> UC13 : <<include>>
+UC13 ..> UC14 : <<include>>
+UC14 ..> UC15 : <<extend>>
+UC9 ..> UC10 : <<include>>
+
+@enduml

@@ -1,0 +1,75 @@
+\section{Déploiement du système}
+
+\paragraph{Architecture générale}
+Le déploiement proposé repose sur une architecture modulaire et distribuée qui dissocie clairement la couche de présentation, la couche applicative et la couche de traitement d'intelligence artificielle, ainsi que la persistance des données. Le frontend (interface utilisateur) est hébergé sur Vercel afin de tirer parti d'un CDN mondial, de déploiements atomiques et d'une latence réduite côté utilisateur. Le backend applicatif et le service d'inférence IA sont déployés sur Render (ou équivalent) sous forme de services conteneurisés, ce qui permet d'isoler les dépendances et d'autoriser un scaling indépendant. La persistance et le stockage d'artefacts (métadonnées, rapports, objets binaires) sont gérés par Supabase (Postgres managé + Storage), choisi pour ses fonctionnalités de sécurité natives (Row Level Security), la gestion des snapshots et son API compatible avec des workflows SQL standard.
+
+Le raisonnement technique derrière cette séparation est double : d'une part, minimiser les risques de régression lors des mises à jour (déploiement indépendant du frontend) ; d'autre part, permettre une allocation de ressources fine (instances CPU/GPU dédiées pour l'inférence) selon les contraintes de latence et de coût.
+
+\paragraph{Déploiement du frontend, du backend et du service IA}
+Le frontend est packagé en artefact statique (HTML/CSS/JS) résultant d'une étape de build (par ex. Next.js static export) puis déployé sur Vercel. Les variables d'environnement publiques et les endpoints sont fournis via la configuration Vercel (ex. \texttt{VERCEL_PUBLIC_API_URL}). Le backend est conteneurisé (image Docker) et expose des API REST et WebSocket pour la gestion des utilisateurs, des examens, des worklists et des notifications en temps réel. Le service IA est lui aussi conteneurisé et contient le modèle exporté (ONNX ou TorchScript), les bibliothèques nécessaires (CUDA/cuDNN si GPU) et une API d'inférence (par ex. FastAPI + Uvicorn). Cette séparation permet d'appliquer des politiques de scaling et des mises à jour de modèles sans impacter la disponibilité du backend.
+
+Du point de vue opérationnel, le pipeline CI/CD suit un flux standardisé : contrôles unitaires et tests d'intégration → build des images Docker (backend, IA) → push vers un registry privé → déploiement automatique sur Render via webhook ; pour le frontend : push → build statique → déploiement par Vercel. Les secrets (clés Supabase, tokens d'API) sont injectés via les variables d'environnement de Vercel/Render et ne sont jamais commités dans le code source.
+
+\paragraph{Base de données, stockage et gestion des données}
+Supabase (Postgres managé) constitue le référentiel des métadonnées cliniques : patients, examens, études, rapports, worklists et logs d'audit. Les images peuvent être stockées soit dans Supabase Storage, soit dans un bucket objet compatible S3 (référencé depuis la base). La justification technique du choix de Postgres managé repose sur la nécessité d'un modèle relationnel robuste, la disponibilité des transactions et la possibilité d'implémenter des politiques de sécurité au niveau des lignes (RLS) pour isoler les données par centre (colonne \texttt{center\_id}).
+
+Les opérations d'ingestion suivent une logique contrôlée : normalisation des métadonnées DICOM, insertion atomique des enregistrements en base, stockage de l'artefact image, puis déclenchement d'un appel d'inférence (synchronique ou asynchronique selon la configuration). Les copies de sauvegarde et les politiques de rétention sont gérées via les mécanismes natifs du service managé (snapshots, exports programmés), complétés par des routines de chiffrement côté serveur pour les données sensibles.
+
+\paragraph{Flux d'inférence et orchestration}
+Le cheminement technique des opérations s'articule en étapes clairement identifiables : capture d'image → upload/ingestion → enregistrement métadonnées → soumission d'une requête d'inférence au service IA → réception et stockage des résultats (scores, heatmaps) → notification des utilisateurs et mise à jour des worklists. Le service IA expose des endpoints de santé et des métriques (latence, throughput) ; il peut être invoqué en mode synchrone (requête/réponse pour obtenir un retour immédiat) ou en mode asynchrone (via une queue Redis ou un orchestrateur) pour le traitement par lots. Cette conception autorise des politiques distinctes de montée en charge et de tolérance aux pannes pour chaque composant.
+
+\paragraph{Sécurité, contrôle d'accès et traçabilité}
+Toutes les communications inter-composants s'effectuent sous TLS. L'authentification repose sur des tokens JWT signés par le backend et, pour l'accès direct aux assets, sur les mécanismes d'authentification et de rôle fournis par Supabase. La politique de sécurité logique implémente des règles RLS contraignantes (filtrage par \texttt{center\_id}) et un modèle de permissions (médecin / administrateur / super\_admin). Les actions critiques (validation, export, modification) sont consignées dans une table d'audit horodatée afin d'assurer traçabilité et conformité.
+
+\paragraph{Mode hybride de fonctionnement : raisonnement détaillé}
+Avant de présenter le comportement effectif du système, il convient d'exposer la logique conceptuelle qui le rend hybride : la plateforme est conçue pour supporter deux modèles opérationnels complémentaires, activés par configuration.
+
+1. Définition des modes. Le mode « complémentaire » fournit principalement des services d'inférence et de reporting interopérables avec l'infrastructure existante (PACS / SIH), tandis que le mode « complet » fournit la chaîne applicative intégrale (ingestion, worklist, gestion utilisateurs, stockage et reporting). Ce découpage répond à des besoins organisationnels distincts : certains centres préfèrent conserver leur workflow local et déléguer uniquement l'IA ; d'autres souhaitent externaliser l'ensemble.
+
+2. Mécanisme d'activation. La sélection du mode s'effectue selon deux niveaux de configuration : une variable d'environnement globale (par ex. \texttt{DEPLOY\_MODE}) et une configuration granulaire par centre persistée en base (table \texttt{centers} avec champ \texttt{mode}). Le raisonnement est que la combinaison de ces deux niveaux autorise des scénarios mixtes (infrastructure cloud partagée, centres en mode complémentaire ou complet selon leur profil).
+
+3. Adaptation du flux applicatif. Lorsque \texttt{center.mode = 'complementary'}, certains endpoints d'ingestion et de stockage sont désactivés côté backend ; le service se contente d'accepter des références DICOM issues du PACS local, d'exécuter l'inférence et de renvoyer les résultats au SI local (formats HL7/FHIR). À l'inverse, dans le mode \texttt{'standalone'} (complet), la plateforme active les fonctionnalités d'ingestion native, de conservation d'artefacts et de gestion de sessions utilisateur.
+
+4. Gestion du stockage et de la souveraineté. Le mode complémentaire autorise la conservation minimale des images côté cloud (références uniquement) ou la mise en place d'un schéma de rétention courte ; le mode complet implique une conservation active des artefacts et des backups réguliers. Cette flexibilité permet d'adapter la politique de confidentialité et de souveraineté des données aux contraintes réglementaires locales.
+
+5. Résilience opérationnelle et basculement. Le backend intègre des feature flags et des règles de routage permettant d'activer un comportement de secours (par ex. acceptation temporaire d'uploads directs si le PACS local est indisponible). De mêmes, les règles d'orchestration autorisent la mutualisation du service IA (cluster partagé) ou le provisioning d'instances dédiées pour des centres exigeant une faible latence.
+
+\paragraph{Configuration, CI/CD et exploitation}
+La configuration applique une logique centralisée : variables d'environnement (\texttt{AI\_ENDPOINT}, \texttt{DEFAULT\_RETENTION}, \texttt{DEPLOY\_MODE}) et table de configuration par centre (\texttt{center\_id, mode, data\_retention\_days, allow\_external\_pacs}). Le pipeline CI/CD inclut des tests contractuels entre backend et service IA, des validations de sécurité et des déploiements automatisés. Le monitoring regroupe logs applicatifs, métriques (Prometheus style) et tracing distribué ; les alertes critiques sont envoyées via un canal d'incident (Sentry / PagerDuty). Les sauvegardes et migrations de schéma sont versionnées et auditées pour garantir la continuité de service.
+
+\paragraph{Considérations réglementaires et déploiement en contexte à ressources limitées}
+Pour les environnements à ressources limitées, la conception privilégie la minimisation des transferts de données sensibles et l'option d'hébergement partiel on‑premise du service IA. Le raisonnement est que l'on peut réduire la dépendance au réseau en localisant l'inférence tout en conservant la gouvernance et le reporting centralisés. Les mécanismes d'anonymisation, de chiffrement au repos et des journaux d'audit sont déployés pour répondre aux exigences locales de protection des données.
+
+\paragraph{Conclusion (synthèse)}
+La stratégie de déploiement adoptée combine modularité, sécurité et flexibilité opérationnelle. En isolant le frontend sur Vercel, le backend et le service IA sur des services conteneurisés, et la persistance sur Supabase, la plateforme permet des mises à jour indépendantes, un dimensionnement spécifique des ressources IA et une conformité renforcée via RLS et journaux d'audit. La logique de configuration duale (global + par centre) rend possible le fonctionnement hybride souhaité : mutualisation des ressources ou fourniture d'une solution complète selon les besoins cliniques et réglementaires.
+
+\subsection{Perspectives}
+
+Avant d'énoncer les axes d'évolution, il convient d'exposer les motifs techniques et cliniques qui motivent chacune des directions proposées : robustesse opérationnelle, amélioration de la performance diagnostique, conformité réglementaire et acceptation clinique.
+
+\paragraph{Renforcement de la validation clinique}  
+Raisonnement : la validation interne doit être complétée par des études multicentriques afin d'estimer la généralisabilité du modèle sur des populations hétérogènes et des dispositifs d'acquisition variés. Actions proposées : protocole d'étude prospectif, définition d'un jeu de métriques cliniques (sensibilité, spécificité, AUC, impact sur les parcours patients) et mise en place d'une gouvernance d'évaluation (comité d'experts, procédures d'anonymisation). Cette étape vise à réduire les biais de sélection observés sur des jeux de données restreints.
+
+\paragraph{Surveillance du modèle et MLOps}  
+Raisonnement : un modèle déployé évolue (dérive des données, changements d'acquisition). Il est nécessaire d'implémenter des pipelines MLOps complets : monitoring des entrées (drift detection), métriques opérationnelles (latence, taux d'erreur), pipelines de tests (A/B testing, shadow mode) et procédures de rollback. Actions proposées : intégrer Prometheus/Grafana pour la supervision, établir alerting pour dérive statistique et automatiser la ré-ingénierie des jeux d'entraînement via pipelines CI/CD dédiés.
+
+\paragraph{Optimisation et déploiement edge}  
+Raisonnement : certains centres requièrent une latence minimale ou une autonomie réseau ; la capacité à exécuter l'inférence localement (edge/embedded) réduit la dépendance au cloud et améliore la souveraineté des données. Actions proposées : quantification et pruning des modèles, conversion vers ONNX/TF Lite, benchmark sur matériel embarqué (CPU/ARM), et automatisation des builds edge dans la CI.
+
+\paragraph{Confidentialité et apprentissage fédéré}  
+Raisonnement : pour préserver la confidentialité et permettre l'apprentissage collaboratif sans centraliser les données, l'approche de fédération est pertinente. Actions proposées : expérimentation d'un protocole fédéré (Federated Averaging) avec chiffrement des gradients ou méthodes d'entraînement privé (DP-SGD), évaluation des coûts en communication et en convergence, et définition des garanties de sécurité nécessaires.
+
+\paragraph{Amélioration de l'explicabilité et de l'UX clinique}  
+Raisonnement : l'adoption clinique dépend largement de la confiance et de la compréhension des résultats par les prescripteurs. Actions proposées : enrichir les cartes Grad‑CAM par des métriques de confiance locales, proposer des rapports structurés FHIR qui intègrent explications visuelles et recommandations, et conduire des études utilisateurs (workshops, évaluations qualitatives) pour itérer l'interface.
+
+\paragraph{Certification et conformité}  
+Raisonnement : pour un déploiement hospitalier à grande échelle, la conformité réglementaire (normes médicales, RGPD/local data protection, marquage CE/autorisation locale) est obligatoire. Actions proposées : documentation formelle du cycle de vie logiciel, gestion des changements, politique de gestion des incidents et constitution d'un dossier de conformité technique et clinique en vue d'une certification.
+
+\paragraph{Élargissement des jeux de données et robustesse}  
+Raisonnement : augmenter la diversité des données (dispositifs, ethnicités, pathologies associées) améliore la robustesse. Actions proposées : partenariats pour collecte multicentrique, pipelines d'annotation assistée, et évaluations continues par strates démographiques pour détecter biais résiduels.
+
+\paragraph{Perspectives opérationnelles et business}  
+Raisonnement : du point de vue de la durabilité, il est nécessaire d'explorer des modèles économiques viables (licences institutionnelles, services gestionnés) et des scénarios de déploiement hybride (cloud public + instances privées dédiées). Actions proposées : étude coûts/benefices, proof-of-concept en centre pilote, et plan d'évolution vers une offre labellisée.
+
+\paragraph{Synthèse des perspectives}  
+En synthèse, les perspectives visent à transformer le prototype en une solution clinique robuste : validation multicentrique, pipelines MLOps, options edge et fédérées pour la confidentialité, renforcement de l'explicabilité et préparation à la certification. Chacune de ces directions contient des implications techniques et organisationnelles qui doivent être priorisées selon les objectifs (sécurité, coût, latence, acceptabilité clinique).

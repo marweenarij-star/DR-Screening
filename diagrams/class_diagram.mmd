@@ -1,0 +1,156 @@
+%% UML Class Diagram - Diabetic Retinopathy Screening System with User Hierarchy
+classDiagram
+    %% ============ User Base Class ============
+    class User {
+        <<abstract>>
+        #int id
+        #string email
+        #string password
+        #string phone
+        #datetime createdAt
+        +login()*
+        +logout()*
+        +updateProfile()*
+        +changePassword()*
+    }
+
+    %% ============ User Type Classes ============
+    class SuperAdmin {
+        +manageCenters()
+        +manageCenterAdmins()
+        +viewSystemReports()
+        +manageSystemConfig()
+        +viewAuditLogs()
+        +handleSupportIssues()
+    }
+
+    class CenterAdmin {
+        -int centerId
+        -string fullName
+        +registerDoctor()
+        +deleteDoctor()
+        +registerPatient()
+        +deletePatient()
+        +manageDoctors()
+        +managePatients()
+        +submitExam()
+        +sendSupportMessage()
+        +manageDoctorSchedule()
+        +generatePatientReports()
+    }
+
+    class Doctor {
+        -int centerId
+        -string fullName
+        -string specialty
+        +viewPendingExams()
+        +reviewExam(examId)
+        +addDiagnosisNotes()
+        +downloadExamReport()
+        +viewPatientHistory()
+        +acknowledgeAlert(alertId)
+    }
+
+    class Patient {
+        -int centerId
+        -string fullName
+        -date birthDate
+        +getExamHistory()
+        +viewExamResults()
+        +downloadReport()
+    }
+
+    %% ============ Entity Classes ============
+    class Center {
+        -int id
+        -string name
+        -string address
+        -string phone
+        -string city
+        -string country
+        +registerPatient()
+        +submitExam(patientId, image)
+        +getInfo()
+    }
+
+    class Exam {
+        -int id
+        -int patientId
+        -int doctorId
+        -int centerId
+        -string imagePath
+        -int grade
+        -float confidence
+        -string gradcamPath
+        -string status
+        -datetime createdAt
+        +saveResult()
+        +updateGrade()
+        +generateReport()
+    }
+
+    class Alert {
+        -int id
+        -int examId
+        -int doctorId
+        -string type
+        -string message
+        -datetime createdAt
+        -bool isRead
+        +markAsRead()
+        +sendNotification()
+    }
+
+    class SupportMessage {
+        -int id
+        -int senderId
+        -int recipientId
+        -string subject
+        -string message
+        -string status
+        -datetime createdAt
+        +sendMessage()
+        +replyMessage()
+        +closeTicket()
+    }
+
+    %% ============ Inheritance Relationships ============
+    User <|-- SuperAdmin
+    User <|-- CenterAdmin
+    User <|-- Doctor
+    User <|-- Patient
+
+    %% ============ Association Relationships ============
+    SuperAdmin "1" --> "*" Center : manages
+    SuperAdmin "1" --> "*" CenterAdmin : manages
+
+    CenterAdmin "1" --> "1" Center : works_in
+    CenterAdmin "1" --> "*" Patient : registers
+    CenterAdmin "1" --> "*" Doctor : registers
+
+    Doctor "1" --> "1" Center : works_in
+    Doctor "1" --> "*" Exam : reviews
+    Doctor "1" --> "*" Alert : receives
+
+    Patient "1" --> "1" Center : belongs_to
+    Patient "1" --> "*" Exam : has
+
+    Center "1" --> "*" Patient : hosts
+    Center "1" --> "*" Doctor : employs
+    Center "1" --> "*" CenterAdmin : manages
+    Center "1" --> "*" Exam : contains
+
+    Exam "*" --> "1" Patient : belongs_to
+    Exam "*" --> "1" Doctor : reviewed_by
+    Exam "1" --> "*" Alert : triggers
+
+    Alert "*" --> "1" Doctor : assigned_to
+    Alert "*" --> "*" SupportMessage : relates_to
+
+    SupportMessage "*" --> "1" User : sent_by
+    SupportMessage "*" --> "1" User : sent_to
+
+    %% ============ Notes ============
+    note for Alert "Critical grade (>=3) triggers Email/SMS/WebSocket notifications"
+    note for User "Abstract base class for all user types in the system"
+    note for Exam "Contains prediction results and doctor reviews"

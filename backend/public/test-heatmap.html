@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Heatmap</title>
+    <style>
+        img { max-width: 500px; border: 2px solid #333; }
+        .status { padding: 10px; margin: 10px 0; }
+        .ok { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Test Carte de Chaleur (Heatmap)</h1>
+    
+    <h2>Image Test 1: Chemin direct</h2>
+    <div id="status1" class="status">Chargement...</div>
+    <img id="img1" src="/uploads/exams/2026/02/exam_4eb5c887-8161-4b80-9727-5dcaf362b2c4_gradcam.png" 
+         onload="document.getElementById('status1').className='status ok'; document.getElementById('status1').textContent='✓ Image chargée avec succès!'"
+         onerror="document.getElementById('status1').className='status error'; document.getElementById('status1').textContent='✗ Erreur de chargement: ' + this.src">
+    
+    <h2>Image Test 2: Via JavaScript</h2>
+    <div id="status2" class="status">Chargement...</div>
+    <img id="img2" style="display:none;">
+    
+    <h2>Fetch API Test</h2>
+    <div id="status3" class="status">Test en cours...</div>
+    
+    <script>
+        // Test 2: Via JavaScript
+        const img2 = document.getElementById('img2');
+        img2.onload = function() {
+            this.style.display = 'block';
+            document.getElementById('status2').className = 'status ok';
+            document.getElementById('status2').textContent = '✓ Image chargée via JS!';
+        };
+        img2.onerror = function(e) {
+            document.getElementById('status2').className = 'status error';
+            document.getElementById('status2').textContent = '✗ Erreur JS: ' + this.src + ' - ' + JSON.stringify(e);
+        };
+        img2.src = '/uploads/exams/2026/02/exam_4eb5c887-8161-4b80-9727-5dcaf362b2c4_gradcam.png?t=' + Date.now();
+        
+        // Test 3: Fetch API
+        fetch('/uploads/exams/2026/02/exam_4eb5c887-8161-4b80-9727-5dcaf362b2c4_gradcam.png')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('status3').className = 'status ok';
+                    document.getElementById('status3').textContent = '✓ Fetch OK - Status: ' + response.status + ', Type: ' + response.headers.get('content-type');
+                } else {
+                    throw new Error('Status: ' + response.status);
+                }
+            })
+            .catch(error => {
+                document.getElementById('status3').className = 'status error';
+                document.getElementById('status3').textContent = '✗ Fetch Error: ' + error.message;
+            });
+    </script>
+</body>
+</html>

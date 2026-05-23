@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activer votre compte - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+        html {
+            min-height: 100%;
+            background: linear-gradient(135deg, #0f6e8c 0%, #1d8aa7 48%, #2f5fdf 100%);
+        }
+
+        body {
+            position: relative;
+            background: linear-gradient(135deg, #0f6e8c 0%, #1d8aa7 48%, #2f5fdf 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            isolation: isolate;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 32%),
+                radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.08), transparent 28%),
+                linear-gradient(135deg, #0f6e8c 0%, #1d8aa7 48%, #2f5fdf 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .activation-container {
+            position: relative;
+            z-index: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            padding: 40px;
+        }
+        
+        .activation-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .activation-header i {
+            font-size: 48px;
+            color: #0f6e8c;
+            margin-bottom: 15px;
+        }
+        
+        .activation-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        
+        .activation-header p {
+            color: #666;
+            margin: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #0f6e8c;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        .password-toggle:hover {
+            color: #14586c;
+        }
+
+        .password-field .form-control {
+            padding-right: 42px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #1d8aa7;
+            box-shadow: 0 0 0 3px rgba(29, 138, 167, 0.16);
+        }
+        
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+        
+        .form-control.is-invalid:focus {
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+        }
+        
+        .invalid-feedback {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .invalid-feedback.show {
+            display: block;
+        }
+        
+        .password-strength {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid #e8ebf3;
+            border-radius: 10px;
+            background: #fafbff;
+        }
+
+        .strength-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .strength-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #4a5568;
+            background: #edf2f7;
+        }
+
+        .strength-chip.weak {
+            color: #b42318;
+            background: #fee4e2;
+        }
+
+        .strength-chip.medium {
+            color: #b54708;
+            background: #fef0c7;
+        }
+
+        .strength-chip.strong {
+            color: #027a48;
+            background: #d1fadf;
+        }
+
+        .strength-score {
+            font-size: 12px;
+            color: #667085;
+            font-weight: 600;
+        }
+
+        .strength-bar {
+            height: 8px;
+            background: #eaecf0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.25s ease, background-color 0.25s ease;
+            background: #98a2b3;
+        }
+
+        .strength-fill.weak {
+            background: #d92d20;
+        }
+
+        .strength-fill.medium {
+            background: #dc6803;
+        }
+
+        .strength-fill.strong {
+            background: #079455;
+        }
+
+        .criteria-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .criteria-item {
+            font-size: 12px;
+            color: #475467;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .criteria-item i {
+            width: 14px;
+            text-align: center;
+            color: #98a2b3;
+        }
+
+        .criteria-item.ok {
+            color: #027a48;
+        }
+
+        .criteria-item.ok i {
+            color: #079455;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #0f6e8c 0%, #1d8aa7 45%, #2f5fdf 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(15, 110, 140, 0.28);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .alert i {
+            margin-right: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0f6e8c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, rgba(15, 110, 140, 0.08) 0%, rgba(47, 95, 223, 0.06) 100%);
+            border-left: 4px solid #0f6e8c;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .info-box i {
+            color: #0f6e8c;
+            margin-right: 8px;
+        }
+        
+        .success-content {
+            display: none;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            color: #0f6e8c;
+            margin-bottom: 20px;
+        }
+        
+        .success-content h2 {
+            color: #0f6e8c;
+            margin-top: 0;
+        }
+        
+        .success-content p {
+            color: #666;
+            margin: 10px 0;
+        }
+        
+        .redirect-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #0f6e8c 0%, #1d8aa7 60%, #2f5fdf 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .redirect-link:hover {
+            background: linear-gradient(135deg, #0a5b73 0%, #17758e 60%, #274fbe 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="activation-container">
+        <!-- Activation Form -->
+        <div id="activation-form-content">
+            <div class="activation-header">
+                <i class="fas fa-lock"></i>
+                <h1>Activez votre compte</h1>
+                <p>Définissez votre mot de passe pour accéder au système</p>
+            </div>
+            
+            <div id="error-alert" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-message"></span>
+            </div>
+            
+            <div id="info-alert" class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                Votre lien d'activation est valide pendant 24 heures
+            </div>
+            
+            <form id="activation-form">
+                <div class="form-group">
+                    <label class="form-label" for="password">Mot de passe <span style="color: #dc3545;">*</span></label>
+                    <div class="password-field">
+                           <input type="password" id="password" name="password" class="form-control" required 
+                               placeholder="Minimum 12 caractères, avec complexité">
+                        <button type="button" class="password-toggle" id="password-toggle" aria-label="Afficher le mot de passe" aria-pressed="false">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="invalid-feedback"></div>
+                    <div class="password-strength" id="password-strength-box" aria-live="polite">
+                        <div class="strength-header">
+                            <span class="strength-chip" id="strength-chip"><i class="fas fa-shield-alt"></i> En cours</span>
+                            <span class="strength-score" id="strength-score">Score: 0/5</span>
+                        </div>
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strength-fill"></div>
+                        </div>
+                        <ul class="criteria-list">
+                            <li class="criteria-item" id="rule-length"><i class="fas fa-circle"></i> 12 caractères minimum</li>
+                            <li class="criteria-item" id="rule-case"><i class="fas fa-circle"></i> Majuscule et minuscule</li>
+                            <li class="criteria-item" id="rule-digit"><i class="fas fa-circle"></i> Au moins un chiffre</li>
+                            <li class="criteria-item" id="rule-special"><i class="fas fa-circle"></i> Au moins un caractère spécial</li>
+                            <li class="criteria-item" id="rule-space"><i class="fas fa-circle"></i> Sans espaces</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password_confirm">Confirmer le mot de passe <span style="color: #dc3545;">*</span></label>
+                    <div class="password-field">
+                        <input type="password" id="password_confirm" name="password_confirm" class="form-control" required 
+                               placeholder="Confirmez votre mot de passe">
+                        <button type="button" class="password-toggle" id="password-confirm-toggle" aria-label="Afficher la confirmation du mot de passe" aria-pressed="false">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="invalid-feedback"></div>
+                </div>
+                
+                <div class="info-box">
+                    <i class="fas fa-shield-alt"></i>
+                    Bonnes pratiques conformité: mot de passe fort, unique, et non réutilisé pour protéger l'accès aux données santé.
+                </div>
+                
+                <button type="submit" class="btn-primary" id="submit-btn">
+                    <i class="fas fa-key"></i>
+                    Activer mon compte
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Activation en cours...</p>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Success Content -->
+        <div id="success-content" class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Compte activé avec succès!</h2>
+            <p>Votre compte a été activé. Vous pouvez maintenant vous connecter à la plateforme DR Screening.</p>
+            <a href="/login" class="redirect-link">
+                <i class="fas fa-sign-in-alt"></i>
+                Aller à la connexion
+            </a>
+        </div>
+    </div>
+    
+    <script src="/js/app.js"></script>
+    <script>
+        const activationToken = new URLSearchParams(window.location.search).get('token') || 
+                               window.location.pathname.split('/').pop();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const passwordInput = document.getElementById('password');
+            const passwordConfirmInput = document.getElementById('password_confirm');
+            const passwordToggle = document.getElementById('password-toggle');
+            const passwordConfirmToggle = document.getElementById('password-confirm-toggle');
+            const form = document.getElementById('activation-form');
+            const errorAlert = document.getElementById('error-alert');
+            const errorMessage = document.getElementById('error-message');
+            const loading = document.getElementById('loading');
+            const submitBtn = document.getElementById('submit-btn');
+            const strengthFill = document.getElementById('strength-fill');
+            const strengthChip = document.getElementById('strength-chip');
+            const strengthScore = document.getElementById('strength-score');
+
+            const strongPasswordHint = 'Le mot de passe doit contenir au moins 12 caracteres, avec majuscule, minuscule, chiffre, caractere special et sans espaces';
+
+            const evaluatePassword = (password) => {
+                const value = String(password || '');
+                const checks = {
+                    length: value.length >= 12,
+                    caseMix: /[a-z]/.test(value) && /[A-Z]/.test(value),
+                    digit: /\d/.test(value),
+                    special: /[^A-Za-z0-9]/.test(value),
+                    noSpace: !/\s/.test(value)
+                };
+
+                const score = Object.values(checks).filter(Boolean).length;
+                let level = 'weak';
+                let label = 'Faible';
+                if (score >= 5) {
+                    level = 'strong';
+                    label = 'Fort';
+                } else if (score >= 3) {
+                    level = 'medium';
+                    label = 'Moyen';
+                }
+
+                return {
+                    checks,
+                    score,
+                    level,
+                    label,
+                    valid: score === 5
+                };
+            };
+
+            const updateRuleState = (id, ok) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('ok', ok);
+                const icon = el.querySelector('i');
+                if (icon) {
+                    icon.className = ok ? 'fas fa-check-circle' : 'fas fa-circle';
+                }
+            };
+
+            const refreshStrength = () => {
+                const pwd = passwordInput.value || '';
+                const result = evaluatePassword(pwd);
+
+                if (strengthFill) {
+                    strengthFill.className = `strength-fill ${result.level}`;
+                    strengthFill.style.width = `${Math.max(0, Math.min(100, result.score * 20))}%`;
+                }
+
+                if (strengthChip) {
+                    strengthChip.className = `strength-chip ${result.level}`;
+                    strengthChip.innerHTML = `<i class="fas fa-shield-alt"></i> ${result.label}`;
+                }
+
+                if (strengthScore) {
+                    strengthScore.textContent = `Score: ${result.score}/5`;
+                }
+
+                updateRuleState('rule-length', result.checks.length);
+                updateRuleState('rule-case', result.checks.caseMix);
+                updateRuleState('rule-digit', result.checks.digit);
+                updateRuleState('rule-special', result.checks.special);
+                updateRuleState('rule-space', result.checks.noSpace);
+
+                submitBtn.disabled = !result.valid;
+                return result;
+            };
+            
+            // Validate activation token exists
+            if (!activationToken) {
+                showError('Lien d\'activation manquant. Veuillez vérifier l\'URL.');
+                form.style.display = 'none';
+                return;
+            }
+            
+            passwordInput.addEventListener('input', () => {
+                showFieldError(passwordInput, '');
+                refreshStrength();
+            });
+
+            passwordConfirmInput.addEventListener('input', () => {
+                showFieldError(passwordConfirmInput, '');
+            });
+
+            const setupToggle = (button, input) => {
+                button.addEventListener('click', () => {
+                    const isVisible = input.type === 'text';
+                    input.type = isVisible ? 'password' : 'text';
+                    button.setAttribute('aria-pressed', String(!isVisible));
+                    button.setAttribute('aria-label', isVisible ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+                    const icon = button.querySelector('i');
+                    if (icon) {
+                        icon.className = isVisible ? 'fas fa-eye' : 'fas fa-eye-slash';
+                    }
+                });
+            };
+
+            setupToggle(passwordToggle, passwordInput);
+            setupToggle(passwordConfirmToggle, passwordConfirmInput);
+            
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const password = passwordInput.value.trim();
+                const passwordConfirm = passwordConfirmInput.value.trim();
+                
+                // Validate
+                if (!password) {
+                    showFieldError(passwordInput, 'Mot de passe requis');
+                    return;
+                }
+                
+                const evaluation = refreshStrength();
+                if (!evaluation.valid) {
+                    showFieldError(passwordInput, strongPasswordHint);
+                    showError(strongPasswordHint);
+                    return;
+                }
+                
+                if (!passwordConfirm) {
+                    showFieldError(passwordConfirmInput, 'Confirmation requise');
+                    return;
+                }
+                
+                if (password !== passwordConfirm) {
+                    showError('Les mots de passe ne correspondent pas');
+                    showFieldError(passwordInput, '');
+                    showFieldError(passwordConfirmInput, '');
+                    return;
+                }
+                
+                try {
+                    errorAlert.classList.remove('show');
+                    loading.style.display = 'block';
+                    submitBtn.disabled = true;
+                    
+                    const response = await fetch('/api/auth/activate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            activation_token: activationToken,
+                            password: password,
+                            password_confirm: passwordConfirm
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.error || 'Erreur lors de l\'activation');
+                    }
+                    
+                    // Success
+                    document.getElementById('activation-form-content').style.display = 'none';
+                    document.getElementById('success-content').style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Activation error:', error);
+                    showError(error.message || 'Une erreur s\'est produite. Veuillez réessayer.');
+                    submitBtn.disabled = false;
+                } finally {
+                    loading.style.display = 'none';
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorAlert.classList.add('show');
+            }
+            
+            function showFieldError(field, message) {
+                const group = field.closest('.form-group');
+                const feedback = group ? group.querySelector('.invalid-feedback') : null;
+                if (feedback) {
+                    feedback.textContent = message;
+                    if (message) {
+                        field.classList.add('is-invalid');
+                        feedback.classList.add('show');
+                    } else {
+                        field.classList.remove('is-invalid');
+                        feedback.classList.remove('show');
+                    }
+                }
+            }
+
+            refreshStrength();
+        });
+    </script>
+</body>
+</html>

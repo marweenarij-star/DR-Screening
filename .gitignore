@@ -1,0 +1,46 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build/output/cache
+dist/
+build/
+coverage/
+.cache/
+
+# Data/artifacts
+*.zip
+*.bak
+*.db
+*.sqlite
+*.sqlite3
+archive/
+APTOS/
+php-app/APTOS/
+training/checkpoints/
+ai-service/models/
+ai-service/heatmaps/
+heatmaps/
+uploads/
+backend/uploads/
+
+# Env/secrets
+.env
+.env.*

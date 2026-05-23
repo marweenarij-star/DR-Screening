@@ -1,0 +1,49 @@
+@startuml ExamCreationFlow
+scale 0.9
+autonumber
+
+actor Admin as "Center Admin"
+participant UI
+participant API
+database DB
+
+== Quick Exam Submission Flow ==
+
+Admin -> UI : Open pending dossiers dashboard
+UI -> API : GET /pending-dossiers
+API -> DB : Fetch pending patients
+DB --> API : patients + doctors
+API --> UI : Display dossiers list
+
+Admin -> UI : Click "Démarrer examen"
+UI -> API : POST /patients/{id}/start-exam
+API -> DB : Verify dossier status
+DB --> API : Patient + doctor data
+API --> UI : Redirect with params
+activate UI
+UI -> UI : new-exam-autofill.js:\nLoad patient_id & doctor_id from URL
+UI -> API : GET /patients, /doctors (load dropdowns)
+API --> UI : Lists
+deactivate UI
+
+UI --> Admin : Form pre-filled
+
+Admin -> UI : Upload retinal images
+Admin -> UI : Submit exam
+UI -> API : POST /exams (images + IDs)
+activate API
+API -> DB : Create exam record
+API -> API : Trigger AI inference (async)
+API --> UI : Exam created successfully
+deactivate API
+
+UI --> Admin : Confirmation
+
+note right of UI
+    **Optimization:**
+    URL parameters enable instant
+    form pre-population without
+    manual selection
+end note
+
+@enduml

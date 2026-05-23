@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patients - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-center">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/center/dashboard" class="sidebar-brand">
+                    <i class="fas fa-hospital"></i>
+                    <span>Admin Centre</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">Gestion</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/dashboard" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/doctors" class="nav-link">
+                            <i class="fas fa-stethoscope"></i>
+                            <span>Médecins</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="nav-section">Dépistage</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/new-exam" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Nouveau dépistage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/history" class="nav-link">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span>Historique</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/support" class="nav-link">
+                            <i class="fas fa-life-ring"></i>
+                            <span>Support & Assistance</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">Administrateur</div>
+                        <div class="user-role">Centre</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+        
+         <!-- Main Content -->
+         <main class="main-content">
+
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Patients</h1>
+                    <p class="page-subtitle">Consultez les dossiers patients du centre en lecture seule</p>
+                </div>
+            </div>
+
+            <div class="stats-strip">
+                <div class="stat-pill">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <div class="stat-pill-label">Patients affichés</div>
+                        <div class="stat-pill-value" id="patients-count">0</div>
+                    </div>
+                </div>
+                        <div class="stat-pill-value" style="font-size: 1rem; font-weight: 600;">
+                            <a href="/center/new-exam">Créer un examen</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="card mb-6">
+                <div class="card-body">
+                    <div class="search-toolbar">
+                        <input type="text" class="form-control" id="search-input" 
+                               placeholder="Rechercher par nom ou numéro de dossier...">
+                        <button class="btn btn-secondary" id="search-btn">
+                            <i class="fas fa-search"></i>
+                            Rechercher
+                        </button>
+                        <button class="btn btn-outline" id="clear-search-btn">
+                            <i class="fas fa-rotate-left"></i>
+                            Réinitialiser
+                        </button>
+                    </div>
+                    <p class="helper-text" id="search-helper">Affichage de tous les patients.</p>
+                </div>
+            </div>
+            
+            <!-- Patients Table -->
+            <div class="card">
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>N° Dossier</th>
+                                <th>Nom complet</th>
+                                <th>Contact</th>
+                                <th>Dernier examen</th>
+                                <th>Examens</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patients-table">
+                            <tr>
+                                <td colspan="5" class="table-empty">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <div id="pagination"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Patient Detail Modal - ADMIN VIEW ONLY: Personal Info + Medical Antecedents -->
+    <div class="modal" id="patient-detail-modal">
+        <div class="modal-dialog" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="detail-patient-name">Détails du patient</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="patient-detail-content" class="patient-detail-view">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Fermer</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/js/app.js"></script>
+    <script>
+        let currentPage = 1;
+        let pagination;
+        let patientToDelete = null;
+        const STANDARD_ANTECEDENTS = [
+            'Diabète type 1 évolutif',
+            'Diabète type 2 évolutif',
+            'Hyperglycémie chronique',
+            'HTA',
+            'Dyslipidémie',
+            'Néphropathie diabétique'
+        ];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.checkRole('center_admin')) return;
+            
+            pagination = new Pagination(document.getElementById('pagination'), loadPatients);
+            loadPatients();
+            
+            // Search
+            document.getElementById('search-btn').addEventListener('click', () => {
+                currentPage = 1;
+                loadPatients();
+            });
+
+            document.getElementById('clear-search-btn').addEventListener('click', () => {
+                document.getElementById('search-input').value = '';
+                currentPage = 1;
+                loadPatients();
+            });
+            
+            document.getElementById('search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    currentPage = 1;
+                    loadPatients();
+                }
+            });
+        });
+        
+        async function loadPatients(page = currentPage) {
+            currentPage = page;
+            const search = document.getElementById('search-input').value;
+            const tbody = document.getElementById('patients-table');
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="table-empty">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </td>
+                </tr>
+            `;
+            
+            try {
+                const response = await API.get(`/patients?page=${page}&search=${encodeURIComponent(search)}`);
+                
+                if (!response || !response.success) {
+                    throw new Error('Erreur de chargement');
+                }
+                
+                const { patients, pagination: pag } = response.data;
+                const searchLabel = search ? `Filtre actif: "${search}"` : 'Affichage de tous les patients.';
+                document.getElementById('search-helper').textContent = searchLabel;
+                document.getElementById('patients-count').textContent = `${patients.length}`;
+                
+                if (patients.length === 0) {
+                    document.getElementById('patients-count').textContent = '0';
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="table-empty">
+                                <div class="empty-state">
+                                    <i class="fas fa-users"></i>
+                                    <h3>Aucun patient trouvé</h3>
+                                    <p>Aucun dossier patient disponible pour ce centre</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = patients.map(patient => `
+                    <tr>
+                        <td><strong>${patient.medical_record_number}</strong></td>
+                        <td>
+                            <div class="patient-name">
+                                <p class="patient-name-primary">${patient.first_name} ${patient.last_name}</p>
+                                <p class="patient-name-secondary">${patient.birth_date ? `Né(e) le ${DateFormat.format(patient.birth_date)}` : '-'}</p>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="patient-contact">
+                                ${patient.phone ? `<p><i class="fas fa-phone"></i> ${patient.phone}</p>` : '<p class="text-muted">-</p>'}
+                            </div>
+                        </td>
+                        <td>
+                            ${patient.last_exam ? `<span class="badge badge-success"><i class="fas fa-calendar"></i> ${DateFormat.format(patient.last_exam)}</span>` : '<span class="badge badge-light">Aucun</span>'}
+                        </td>
+                        <td>
+                            <span class="badge badge-info">${patient.exam_count || 0} examen(s)</span>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                pagination.update(pag);
+                
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="table-empty text-danger">
+                            Erreur de chargement : ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function buildMedicalHistory() {
+            const selectedAntecedents = Array.from(document.querySelectorAll('#medical-antecedent-grid input[type="checkbox"]:checked'))
+                .map((input) => input.value.trim())
+                .filter(Boolean);
+            const otherComplications = (document.getElementById('other_complications').value || '').trim();
+
+            if (!selectedAntecedents.length && !otherComplications) {
+                return '';
+            }
+
+            const parts = [];
+            if (selectedAntecedents.length) {
+                parts.push(`Antécédents standards: ${selectedAntecedents.join(', ')}`);
+            }
+            if (otherComplications) {
+                parts.push(`Autres complications: ${otherComplications}`);
+            }
+
+            return parts.join(' | ');
+        }
+
+        function parseMedicalHistory(rawHistory) {
+            const value = String(rawHistory || '').trim();
+            const result = {
+                selected: new Set(),
+                other: ''
+            };
+
+            if (!value) {
+                return result;
+            }
+
+            const normalized = value.toLowerCase();
+            STANDARD_ANTECEDENTS.forEach((item) => {
+                if (normalized.includes(item.toLowerCase())) {
+                    result.selected.add(item);
+                }
+            });
+
+            const segments = value.split(/[\n|;,]+/).map((item) => item.trim()).filter(Boolean);
+            const otherSegments = [];
+
+            segments.forEach((segment) => {
+                let cleaned = segment
+                    .replace(/^antécédents standards\s*:\s*/i, '')
+                    .replace(/^autres complications\s*:\s*/i, '')
+                    .trim();
+
+                if (!cleaned) {
+                    return;
+                }
+
+                const isStandard = STANDARD_ANTECEDENTS.some((item) => cleaned.toLowerCase() === item.toLowerCase());
+                if (!isStandard) {
+                    otherSegments.push(cleaned);
+                }
+            });
+
+            result.other = otherSegments.join(', ');
+            return result;
+        }
+
+        function hydrateMedicalHistory(rawHistory) {
+            const parsed = parseMedicalHistory(rawHistory);
+
+            document.querySelectorAll('#medical-antecedent-grid input[type="checkbox"]').forEach((input) => {
+                input.checked = parsed.selected.has(input.value);
+            });
+            document.getElementById('other_complications').value = parsed.other;
+            document.getElementById('medical_history').value = buildMedicalHistory();
+        }
+
+        function renderAntecedentPills(items, emptyLabel) {
+            if (!items || !items.length) {
+                return `<div class="detail-empty-line">${emptyLabel}</div>`;
+            }
+
+            return `
+                <div class="detail-pill-list">
+                    ${items.map((item) => `<span class="detail-pill">${item}</span>`).join('')}
+                </div>
+            `;
+        }
+        
+        // View patient details - ADMIN ONLY: Shows personal info + medical antecedents (NO exam results)
+        async function viewPatient(id) {
+            try {
+                const response = await API.get(`/patients/${id}`);
+                
+                if (!response || !response.success) {
+                    throw new Error('Patient non trouvé');
+                }
+                
+                const patient = response.data;
+                document.getElementById('detail-patient-name').textContent = `${patient.first_name} ${patient.last_name}`;
+                
+                const parsed = parseMedicalHistory(patient.medical_history || '');
+                const standardAntecedents = Array.from(parsed.selected);
+                const otherAntecedents = parsed.other
+                    ? parsed.other.split(/[,;]+/).map((item) => item.trim()).filter(Boolean)
+                    : [];
+                
+                document.getElementById('patient-detail-content').innerHTML = `
+                    <div class="detail-section">
+                        <h4 class="detail-section-title"><i class="fas fa-id-card"></i> Informations personnelles</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><span class="detail-label">Dossier:</span> <strong>${patient.medical_record_number}</strong></div>
+                            <div class="detail-item"><span class="detail-label">Né(e):</span> ${DateFormat.format(patient.birth_date)}</div>
+                            <div class="detail-item"><span class="detail-label">Genre:</span> ${patient.gender === 'M' ? 'Masculin' : 'Féminin'}</div>
+                            <div class="detail-item"><span class="detail-label">Téléphone:</span> ${patient.phone || '-'}</div>
+                            <div class="detail-item"><span class="detail-label">Email:</span> ${patient.email || '-'}</div>
+                            <div class="detail-item"><span class="detail-label">Adresse:</span> ${patient.address || '-'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4 class="detail-section-title"><i class="fas fa-heart-pulse"></i> Antécédents médicaux</h4>
+                        <div class="detail-subsection">
+                            <div class="detail-subsection-title">Antécédents standards</div>
+                            ${renderAntecedentPills(standardAntecedents, 'Aucun antécédent standard enregistré')}
+                        </div>
+                        <div class="detail-subsection">
+                            <div class="detail-subsection-title">Autres complications</div>
+                            ${renderAntecedentPills(otherAntecedents, 'Aucune autre complication renseignée')}
+                        </div>
+                    </div>
+                `;
+                
+                Modal.show('patient-detail-modal');
+                
+            } catch (error) {
+                Toast.show(error.message, 'danger');
+            }
+        }
+    </script>
+    <style>
+        /* Medical Antecedents Grid Styling */
+        .medical-antecedent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.8rem;
+            width: 100%;
+            align-items: start;
+        }
+
+        .medical-antecedent-option {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.65rem 0.8rem;
+            border: 1px solid #d0e3ed;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f9fdff 0%, #f3f9fd 100%);
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .medical-antecedent-option:hover {
+            background: linear-gradient(135deg, #f0f8fc 0%, #e9f5fa 100%);
+            border-color: #0f6e8c;
+            box-shadow: 0 2px 4px rgba(15, 110, 140, 0.1);
+        }
+
+        .medical-antecedent-option input[type="checkbox"] {
+            margin: 0;
+            width: 18px;
+            height: 18px;
+            accent-color: #0f6e8c;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .medical-antecedent-option span {
+            flex: 1;
+            user-select: none;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        @media (max-width: 768px) {
+            .medical-antecedent-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Patient Detail Styles */
+        .patient-detail-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .detail-section {
+            padding: 1rem;
+            background: #f8fcff;
+            border-radius: 12px;
+            border-left: 4px solid #0f6e8c;
+        }
+
+        .detail-section-title {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0f6e8c;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .detail-item {
+            padding: 0.5rem 0;
+            font-size: 0.95rem;
+            color: #1f313a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #0f6e8c;
+            min-width: 100px;
+        }
+
+        .detail-antecedents {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .detail-subsection {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.1rem;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, rgba(15, 110, 140, 0.03) 0%, rgba(15, 110, 140, 0.01) 100%);
+            border: 1px solid rgba(15, 110, 140, 0.08);
+            border-radius: 0.5rem;
+        }
+
+        .detail-subsection:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-subsection-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #0f6e8c;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .detail-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.48rem 0.75rem;
+            border-radius: 6px;
+            background: var(--white);
+            color: #0f6e8c;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border: 1.5px solid rgba(15, 110, 140, 0.25);
+            box-shadow: 0 1px 2px rgba(15, 110, 140, 0.06);
+            transition: all 0.2s ease;
+        }
+
+        .detail-pill:hover {
+            background: rgba(15, 110, 140, 0.05);
+            border-color: rgba(15, 110, 140, 0.4);
+            box-shadow: 0 2px 4px rgba(15, 110, 140, 0.1);
+        }
+
+        .detail-empty-line {
+            padding: 0.4rem 0;
+            color: #5a7483;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

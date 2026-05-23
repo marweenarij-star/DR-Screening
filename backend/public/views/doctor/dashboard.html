@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-doctor">
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/doctor/dashboard" class="sidebar-brand">
+                    <i class="fas fa-eye"></i>
+                    <span>DR Screening</span>
+                </a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">Médecin</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/doctor/dashboard" class="nav-link active">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/doctor/patients" class="nav-link" id="sidebar-patients-link">
+                            <i class="fas fa-users"></i>
+                            <span>Mes patients</span>
+                            <span class="nav-badge" id="patients-sidebar-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/doctor/alerts" class="nav-link">
+                            <i class="fas fa-bell"></i>
+                            <span>Alertes</span>
+                            <span class="nav-badge" id="alert-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name" id="user-display-name">Dr. Médecin</div>
+                        <div class="user-role">Ophtalmologue</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content dashboard-shell">
+<div class="welcome-banner mb-6 welcome-banner-modern dashboard-hero">
+                 <div class="banner-identity">
+                     <span class="banner-icon" aria-hidden="true"><i class="fas fa-user-md"></i></span>
+                     <div class="banner-stack">
+                         <div class="welcome-greeting banner-title">
+                             Bonjour, <span id="welcome-name">Dr. Najia Abidi</span> ! Prêt à examiner les dossiers patients aujourd'hui.
+                         </div>
+                         <div class="banner-chips" aria-label="Statut clinique">
+                             <span class="banner-chip"><i class="fas fa-bolt"></i> Priorité claire</span>
+                             <span class="banner-chip"><i class="fas fa-shield-check"></i> Données sécurisées</span>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-4 mb-6">
+                <div class="stat-card">
+                    <div class="stat-icon warning" id="stat-pending-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-pending">-</div>
+                        <div class="stat-label">En attente</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-total">-</div>
+                        <div class="stat-label">Total analysés</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-severe">-</div>
+                        <div class="stat-label">Cas sévères</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-today">-</div>
+                        <div class="stat-label">Aujourd'hui</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Exams Section -->
+            <div class="card mb-6" id="pending-section">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-hourglass-half" style="color: var(--warning);"></i>
+                        Examens en attente d'analyse
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div id="pending-exams">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Followed Patients List -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title" id="patients-section-title">Examen</h3>
+                        <p class="section-subtitle" id="patients-section-subtitle"></p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" id="patients-create-btn" type="button" style="display: none;">
+                            <i class="fas fa-user-plus"></i>
+                            Nouveau patient
+                        </button>
+                        <div class="search-wrap">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="search-input" class="form-control" aria-label="Rechercher un patient"
+                                   placeholder="Rechercher patient, dossier ou adresse...">
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="search-btn" title="Rechercher" aria-label="Rechercher">
+                            <i class="fas fa-search"></i>
+                            Rechercher
+                        </button>
+                        <button class="btn btn-outline btn-sm" id="clear-search-btn" title="Réinitialiser" aria-label="Réinitialiser les filtres">
+                            <i class="fas fa-rotate-left"></i>
+                            Réinitialiser
+                        </button>
+                        <button class="btn btn-outline btn-sm" id="refresh-exams-btn" title="Actualiser" aria-label="Actualiser la liste">
+                            <i class="fas fa-sync-alt"></i>
+                            Actualiser
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="table clean-table">
+                        <thead>
+                            <tr id="patients-table-head-row">
+                                <th>Dossier</th>
+                                <th>Patient</th>
+                                <th>Statut</th>
+                                <th>Dernier examen</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="exams-table">
+                            <tr>
+                                <td colspan="5" class="table-empty">
+                                    <div class="loading"><div class="spinner"></div></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <div id="pagination"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Patient Modal -->
+    <div class="modal" id="patient-modal">
+        <div class="modal-dialog" style="max-width: 820px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="patient-modal-title">Nouveau patient</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <form id="patient-form">
+                <div class="modal-body">
+                    <input type="hidden" id="patient-id" name="id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="patient-first-name">Prénom</label>
+                            <input type="text" id="patient-first-name" name="first_name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required" for="patient-last-name">Nom</label>
+                            <input type="text" id="patient-last-name" name="last_name" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="patient-birth-date">Date de naissance</label>
+                            <input type="date" id="patient-birth-date" name="birth_date" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Genre</label>
+                            <div class="gender-options">
+                                <label class="gender-option"><input type="checkbox" id="gender-m" name="gender" value="M"> <span>Masculin</span></label>
+                                <label class="gender-option"><input type="checkbox" id="gender-f" name="gender" value="F"> <span>Féminin</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="patient-address">Adresse</label>
+                        <textarea id="patient-address" name="address" class="form-control" rows="2" placeholder="Adresse du patient"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="patient-phone">Téléphone</label>
+                            <input type="text" id="patient-phone" name="phone" class="form-control" placeholder="Numéro de téléphone">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="patient-email">Email</label>
+                            <input type="email" id="patient-email" name="email" class="form-control" placeholder="adresse@exemple.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Antécédents médicaux standards</label>
+                        <div class="medical-antecedent-grid" id="medical-antecedent-grid">
+                            <label class="medical-antecedent-option"><input type="checkbox" value="Diabète type 1 évolutif"><span>Diabète type 1 évolutif</span></label>
+                            <label class="medical-antecedent-option"><input type="checkbox" value="Diabète type 2 évolutif"><span>Diabète type 2 évolutif</span></label>
+                            <label class="medical-antecedent-option"><input type="checkbox" value="Hyperglycémie chronique"><span>Hyperglycémie chronique</span></label>
+                            <label class="medical-antecedent-option"><input type="checkbox" value="HTA"><span>HTA</span></label>
+                            <label class="medical-antecedent-option"><input type="checkbox" value="Dyslipidémie"><span>Dyslipidémie</span></label>
+                            <label class="medical-antecedent-option"><input type="checkbox" value="Néphropathie diabétique"><span>Néphropathie diabétique</span></label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="patient-other-history">Ajout manuel</label>
+                        <textarea id="patient-other-history" class="form-control" rows="2" placeholder="Ajouter un antécédent complémentaire"></textarea>
+                        <input type="hidden" id="patient-medical-history" name="medical_history" value="">
+                        <input type="hidden" id="patient-manual-medical-history" name="manual_medical_history" value="">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="patient-save-btn">
+                        <i class="fas fa-save"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Patient Modal -->
+    <div class="modal" id="delete-patient-modal">
+        <div class="modal-dialog" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmer la suppression</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer ce patient ?</p>
+                <p class="text-danger"><strong id="delete-patient-name">-</strong></p>
+                <p class="text-muted">Cette action supprimera aussi les examens associés.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-patient-btn">
+                    <i class="fas fa-trash"></i>
+                    Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient History Modal -->
+    <div class="modal" id="patient-history-modal">
+        <div class="modal-dialog" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Historique patient</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info mb-4">
+                    <div><strong>Patient:</strong> <span id="history-patient-name">-</span></div>
+                    <div><strong>N° Dossier:</strong> <span id="history-mrn">-</span></div>
+                    <div><strong>Antécédents:</strong> <span id="history-medical">-</span></div>
+                </div>
+
+                <h4 class="mb-4">Progression dans le temps</h4>
+                <div class="table-container">
+                    <table class="table clean-table history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Grade final</th>
+                                <th>Confiance</th>
+                                <th>Évolution</th>
+                                <th>Détails</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <tr>
+                                <td colspan="5" class="table-empty">Chargement...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal-close>Fermer</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analysis Modal -->
+    <div class="modal" id="analyze-modal">
+        <div class="modal-dialog" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Analyser l'examen</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-cols-2">
+                    <!-- Image Preview -->
+                    <div>
+                        <h4 class="mb-4">Image du fond d'œil</h4>
+                        <img id="modal-image" src="" alt="Fond d'œil" style="width: 100%; border-radius: 8px;">
+                    </div>
+                    
+                    <!-- Patient Info -->
+                    <div>
+                        <h4 class="mb-4">Informations patient</h4>
+                        <div class="alert alert-info mb-4">
+                            <div><strong>Patient:</strong> <span id="modal-patient-name">-</span></div>
+                            <div><strong>N° Dossier:</strong> <span id="modal-mrn">-</span></div>
+                            <div><strong>Âge:</strong> <span id="modal-age">-</span></div>
+                            <div><strong>Œil:</strong> <span id="modal-eye">-</span></div>
+                        </div>
+                        
+                        <h4 class="mb-4">Antécédents médicaux</h4>
+                        <div class="alert" style="background: var(--gray-100);">
+                            <p id="modal-medical-history" style="white-space: pre-wrap;">Aucun antécédent renseigné</p>
+                        </div>
+                        
+                        <div id="modal-notes-section" style="display: none;">
+                            <h4 class="mb-4">Notes de l'examen</h4>
+                            <p id="modal-notes" class="text-muted"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Section (hidden initially) -->
+                <div id="analysis-results" style="display: none; margin-top: 2rem;">
+                    <hr>
+                    <h4 class="mb-4">Résultat de l'analyse IA</h4>
+                    <div class="grid grid-cols-2">
+                        <div class="analysis-result-hero">
+                            <div id="result-grade-value" class="analysis-grade-value">-</div>
+                            <div id="result-grade-label" class="analysis-grade-label">-</div>
+                            <div id="result-confidence" class="analysis-grade-confidence">-</div>
+                        </div>
+                        <div>
+                            <h5>Carte de chaleur (Grad-CAM)</h5>
+                            <img id="result-heatmap" src="" alt="Grad-CAM" style="width: 100%; border-radius: 8px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal-close>Fermer</button>
+                <button class="btn btn-primary" id="analyze-btn">
+                    <i class="fas fa-brain"></i>
+                    Lancer l'analyse IA
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay" style="display: none;">
+        <div style="text-align: center;">
+            <div class="spinner" style="width: 60px; height: 60px;"></div>
+            <p style="margin-top: 1rem; color: var(--gray-700);">Analyse IA en cours...</p>
+        </div>
+    </div>
+    
+    <script src="/js/app.js"></script>
+    <script>
+        let currentPage = 1;
+        let pagination;
+        let currentExamId = null;
+        let patientToDelete = null;
+        let patientToEdit = null;
+        // patientsViewMode: 'followed' = patients the doctor follows (from exams)
+        // 'managed' = patients created/managed by the doctor (full CRUD)
+        let patientsViewMode = 'followed';
+        const STANDARD_ANTECEDENTS = [
+            'Diabète type 1 évolutif',
+            'Diabète type 2 évolutif',
+            'Hyperglycémie chronique',
+            'HTA',
+            'Dyslipidémie',
+            'Néphropathie diabétique'
+        ];
+        
+        const EYE_LABELS = {
+            'left': 'Œil gauche (OG)',
+            'right': 'Œil droit (OD)',
+            'unknown': 'Non spécifié'
+        };
+
+        function capitalizeWords(value) {
+            return String(value || '')
+                .toLowerCase()
+                .split(/\s+/)
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        async function loadMyPatients() {
+            const container = document.getElementById('my-patients-list');
+            if (!container) return;
+            container.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+            try {
+                const response = await api.get('/doctor/patients/managed?page=1&per_page=5');
+                if (!response || !response.success) {
+                    throw new Error('Erreur de chargement');
+                }
+
+                const patients = response.data.patients || [];
+                // update sidebar badge
+                const badge = document.getElementById('patients-sidebar-badge');
+                if (badge) {
+                    badge.textContent = patients.length;
+                    badge.style.display = patients.length > 0 ? 'inline' : 'none';
+                }
+                if (!patients.length) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-user-injured"></i>
+                            <h3>Aucun patient trouvé</h3>
+                            <p>Créez votre premier patient ou vérifiez les dossiers partagés avec vous.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <ul class="compact-patient-list">
+                        ${patients.map(p => `
+                            <li class="compact-patient-item">
+                                <div class="patient-avatar-sm">${(p.full_name||'').trim().charAt(0).toUpperCase()}</div>
+                                <div class="patient-info">
+                                    <div class="patient-name">${p.full_name}</div>
+                                    <div class="patient-meta">${p.medical_record_number || '-'} • ${p.gender ? (p.gender === 'M' ? 'H' : 'F') : '-'}${p.age ? ' • ' + p.age + ' ans' : ''}</div>
+                                </div>
+                                <div class="patient-actions">
+                                    <button class="btn btn-sm btn-outline" onclick="editPatient(${p.id})"><i class="fas fa-pen"></i></button>
+                                    <button class="btn btn-sm btn-outline" onclick="openPatientHistory(${p.id})"><i class="fas fa-chart-line"></i></button>
+                                    ${requestExamButtonHtml(p.id, p.full_name, p.dossier_status)}
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } catch (err) {
+                container.innerHTML = `<p class="text-danger">Erreur: ${err.message}</p>`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.checkRole('doctor')) return;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const isPatientsRoute = window.location.pathname === '/doctor/patients' || urlParams.get('view') === 'patients';
+            if (isPatientsRoute) {
+                patientsViewMode = 'managed';
+            }
+            
+            // Update user info
+            const user = Auth.getUser();
+            const formattedDoctorName = capitalizeWords(`${user.first_name || ''} ${user.last_name || ''}`.trim());
+            const displayName = (`Dr. ${formattedDoctorName}`.trim()) || 'Dr. Médecin';
+            document.getElementById('user-display-name').textContent = displayName;
+            document.getElementById('welcome-name').textContent = displayName;
+            
+            pagination = new Pagination(document.getElementById('pagination'), loadExams);
+            
+            // Keep a fixed clinical welcome phrase for dashboard consistency.
+
+            document.getElementById('patient-form').addEventListener('submit', savePatient);
+            document.getElementById('confirm-delete-patient-btn').addEventListener('click', confirmDeletePatient);
+
+            const patientsCreateBtn = document.getElementById('patients-create-btn');
+            if (patientsCreateBtn) patientsCreateBtn.addEventListener('click', () => openPatientModal());
+
+            // Gender checkbox exclusivity (behaves like a toggle group)
+            const elGM = document.getElementById('gender-m');
+            const elGF = document.getElementById('gender-f');
+            if (elGM) elGM.addEventListener('change', (e) => { if (e.target.checked && elGF) elGF.checked = false; });
+            if (elGF) elGF.addEventListener('change', (e) => { if (e.target.checked && elGM) elGM.checked = false; });
+
+            // Sidebar "Mes patients" click: set active and show quick list
+            function setActiveSidebarLink(id) {
+                document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
+                const el = document.getElementById(id);
+                if (el) el.classList.add('active');
+            }
+
+            const sidebarPatientsLink = document.getElementById('sidebar-patients-link');
+            if (sidebarPatientsLink) {
+                sidebarPatientsLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetUrl = '/doctor/patients';
+                    if (window.location.pathname !== '/doctor/dashboard') {
+                        window.location.href = targetUrl;
+                        return;
+                    }
+                    setActiveSidebarLink('sidebar-patients-link');
+                    // open managed view in main table (full CRUD)
+                    patientsViewMode = 'managed';
+                    loadExams(1);
+                    const card = document.getElementById('exams-table').closest('.card');
+                    if (card) card.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+
+            loadStats();
+            loadPendingExams();
+            loadExams();
+            loadAlertCount();
+            // Load quick patients list
+            loadMyPatients();
+            
+            // Filters
+            document.getElementById('search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    currentPage = 1;
+                    loadExams();
+                }
+            });
+            document.getElementById('search-btn').addEventListener('click', () => {
+                currentPage = 1;
+                loadExams();
+            });
+            document.getElementById('clear-search-btn').addEventListener('click', () => {
+                document.getElementById('search-input').value = '';
+                currentPage = 1;
+                loadExams();
+            });
+            document.getElementById('refresh-exams-btn').addEventListener('click', () => {
+                loadStats();
+                loadPendingExams();
+                loadExams(currentPage);
+            });
+            const quickRefreshBtn = document.getElementById('quick-refresh-btn');
+            if (quickRefreshBtn) {
+                quickRefreshBtn.addEventListener('click', () => {
+                    loadStats();
+                    loadPendingExams();
+                    loadExams(currentPage);
+                });
+            }
+            
+            // Analyze button
+            document.getElementById('analyze-btn').addEventListener('click', analyzeExam);
+            
+            // Modal close
+            Modal.init();
+        });
+
+        function splitPatientName(fullName) {
+            const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+            return {
+                first_name: parts[0] || '',
+                last_name: parts.slice(1).join(' ') || ''
+            };
+        }
+
+        function parseMedicalHistory(rawHistory) {
+            const value = String(rawHistory || '').trim();
+            const selected = new Set();
+            let manual = value;
+
+            const standardMatch = value.match(/Antécédents standards\s*:\s*([^\n]+)/i);
+            if (standardMatch) {
+                standardMatch[1].split(',').map((item) => item.trim()).filter(Boolean).forEach((item) => selected.add(item));
+                manual = value.replace(standardMatch[0], '').trim();
+            }
+
+            STANDARD_ANTECEDENTS.forEach((item) => {
+                if (value.toLowerCase().includes(item.toLowerCase())) {
+                    selected.add(item);
+                }
+            });
+
+            return { selected, manual };
+        }
+
+        function updatePatientsSectionUI() {
+            const title = document.getElementById('patients-section-title');
+            const subtitle = document.getElementById('patients-section-subtitle');
+            const searchInput = document.getElementById('search-input');
+            const headRow = document.getElementById('patients-table-head-row');
+            const createBtn = document.getElementById('patients-create-btn');
+
+                if (patientsViewMode === 'managed') {
+                if (title) title.textContent = 'Mes Patients';
+                if (subtitle) subtitle.textContent = 'Gestion des patients que vous suivez et que vous avez créés.';
+                if (searchInput) searchInput.placeholder = 'Rechercher un patient, un dossier ou une adresse...';
+                if (createBtn) createBtn.style.display = 'inline-flex';
+                if (headRow) {
+                    headRow.innerHTML = `
+                        <th>Dossier</th>
+                        <th>Patient</th>
+                        <th>Dernier examen</th>
+                        <th></th>
+                    `;
+                }
+            } else {
+                if (title) title.textContent = 'Examen';
+                if (subtitle) subtitle.textContent = '';
+                if (searchInput) searchInput.placeholder = 'Rechercher patient, dossier ou adresse...';
+                if (createBtn) createBtn.style.display = 'none';
+                if (headRow) {
+                    headRow.innerHTML = `
+                        <th>Dossier</th>
+                        <th>Patient</th>
+                        <th>Statut</th>
+                        <th>Dernier examen</th>
+                        <th></th>
+                    `;
+                }
+            }
+        }
+
+        function hydrateMedicalHistory(rawHistory) {
+            const parsed = parseMedicalHistory(rawHistory);
+            document.querySelectorAll('#medical-antecedent-grid input[type="checkbox"]').forEach((input) => {
+                input.checked = parsed.selected.has(input.value);
+            });
+            document.getElementById('patient-other-history').value = parsed.manual;
+            document.getElementById('patient-medical-history').value = buildMedicalHistory();
+            document.getElementById('patient-manual-medical-history').value = document.getElementById('patient-other-history').value.trim();
+        }
+
+        function buildMedicalHistory() {
+            const selectedAntecedents = Array.from(document.querySelectorAll('#medical-antecedent-grid input[type="checkbox"]:checked'))
+                .map((input) => input.value);
+            const manualHistory = String(document.getElementById('patient-other-history').value || '').trim();
+            const parts = [];
+
+            if (selectedAntecedents.length) {
+                parts.push(`Antécédents standards: ${selectedAntecedents.join(', ')}`);
+            }
+            if (manualHistory) {
+                parts.push(manualHistory);
+            }
+
+            return parts.join('\n');
+        }
+
+        function openPatientModal(patient = null) {
+            patientToEdit = patient;
+            const isEdit = !!patient;
+            document.getElementById('patient-modal-title').textContent = isEdit ? 'Modifier le patient' : 'Nouveau patient';
+            document.getElementById('patient-form').reset();
+            document.getElementById('patient-id').value = patient ? patient.id : '';
+            document.getElementById('patient-medical-history').value = '';
+            document.getElementById('patient-manual-medical-history').value = '';
+
+                document.querySelectorAll('#medical-antecedent-grid input[type="checkbox"]').forEach((input) => {
+                    input.checked = false;
+                });
+                // Clear gender checkboxes and birth date by default
+                const gM = document.getElementById('gender-m');
+                const gF = document.getElementById('gender-f');
+                if (gM) gM.checked = false;
+                if (gF) gF.checked = false;
+                const dob = document.getElementById('patient-birth-date');
+                if (dob) dob.value = '';
+
+            if (patient) {
+                const name = splitPatientName(patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim());
+                document.getElementById('patient-first-name').value = patient.first_name || name.first_name;
+                document.getElementById('patient-last-name').value = patient.last_name || name.last_name;
+                document.getElementById('patient-address').value = patient.address || '';
+                    const phoneEl = document.getElementById('patient-phone');
+                    const emailEl = document.getElementById('patient-email');
+                    if (phoneEl) phoneEl.value = patient.phone || '';
+                    if (emailEl) emailEl.value = patient.email || '';
+                    hydrateMedicalHistory(patient.medical_history || '');
+                    // populate birth date and gender when editing
+                    if (patient.birth_date) {
+                        const elDob = document.getElementById('patient-birth-date');
+                        if (elDob) elDob.value = patient.birth_date;
+                    }
+                    if (patient.gender) {
+                        const elGM = document.getElementById('gender-m');
+                        const elGF = document.getElementById('gender-f');
+                        if (elGM) elGM.checked = patient.gender === 'M';
+                        if (elGF) elGF.checked = patient.gender === 'F';
+                    }
+            }
+
+            Modal.show('patient-modal');
+        }
+
+        async function savePatient(event) {
+            event.preventDefault();
+
+            const patientId = String(document.getElementById('patient-id').value || '').trim();
+            const form = event.target;
+            const data = Form.serialize(form);
+            data.medical_history = buildMedicalHistory();
+            data.manual_medical_history = String(document.getElementById('patient-other-history').value || '').trim();
+            // Ensure birth_date and gender are explicitly provided
+            const dobEl = document.getElementById('patient-birth-date');
+            data.birth_date = dobEl ? dobEl.value || null : null;
+            const gm = document.getElementById('gender-m');
+            const gf = document.getElementById('gender-f');
+            if (gm && gm.checked) data.gender = 'M';
+            else if (gf && gf.checked) data.gender = 'F';
+            else data.gender = null;
+            delete data.id;
+
+            try {
+                if (patientId) {
+                    await api.put(`/doctor/patients/${patientId}`, data);
+                        Toast.show('Patient mis à jour avec succès', 'success');
+                } else {
+                    await api.post('/doctor/patients', data);
+                        Toast.show('Patient créé avec succès', 'success');
+                }
+
+                Modal.hide('patient-modal');
+                loadExams();
+                loadMyPatients();
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors de l’enregistrement', 'danger');
+            }
+        }
+
+        function editPatient(patientId) {
+            loadPatientForEdit(patientId);
+        }
+
+        async function loadPatientForEdit(patientId) {
+            try {
+                const response = await api.get(`/doctor/patients/${patientId}`);
+                if (!response || !response.success) {
+                    throw new Error('Patient non trouvé');
+                }
+
+                openPatientModal(response.data);
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors du chargement du patient', 'danger');
+            }
+        }
+
+        function requestDeletePatient(patientId, patientName) {
+            console.log('🗑️ Delete request:', { patientId, patientName });
+            patientToDelete = { id: patientId, name: patientName };
+            document.getElementById('delete-patient-name').textContent = patientName || '-';
+            console.log('Modal target:', document.getElementById('delete-patient-modal'));
+            Modal.show('delete-patient-modal');
+            console.log('Modal showed');
+        }
+
+        async function confirmDeletePatient() {
+            console.log('🔄 Confirm delete clicked, patientToDelete:', patientToDelete);
+            if (!patientToDelete) {
+                console.warn('⚠️ No patient selected');
+                Toast.show('Aucun patient sélectionné', 'warning');
+                return;
+            }
+
+            try {
+                console.log('📡 Calling DELETE /doctor/patients/' + patientToDelete.id);
+                const response = await api.delete(`/doctor/patients/${patientToDelete.id}`);
+                console.log('✅ Delete successful:', response);
+                Toast.show('Patient supprimé avec succès', 'success');
+                Modal.hide('delete-patient-modal');
+                patientToDelete = null;
+                console.log('Reloading data...');
+                await loadExams();
+                if (typeof loadMyPatients === 'function') {
+                    await loadMyPatients();
+                }
+            } catch (error) {
+                console.error('❌ Delete error:', error);
+                Toast.show(error.message || 'Erreur lors de la suppression', 'danger');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await api.get('/doctor/stats');
+                if (response && response.success) {
+                    const data = response.data;
+                    document.getElementById('stat-pending').textContent = data.pending_exams || 0;
+                    document.getElementById('stat-total').textContent = data.total_exams;
+                    document.getElementById('stat-today').textContent = data.exams_today;
+                    document.getElementById('stat-severe').textContent = data.severe_cases;
+                    updateWelcomeStats();
+                    
+                    // Highlight pending if any
+                    if (data.pending_exams > 0) {
+                        document.getElementById('stat-pending-icon').classList.add('pulse');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+
+        
+        async function loadAlertCount() {
+            try {
+                const response = await api.get('/doctor/alerts/count');
+                if (response && response.success) {
+                    const badge = document.getElementById('alert-badge');
+                    badge.textContent = response.data.unread;
+                    badge.style.display = response.data.unread > 0 ? 'inline' : 'none';
+                }
+            } catch (error) {
+                console.error('Error loading alert count:', error);
+            }
+        }
+        
+        async function loadPendingExams() {
+            const container = document.getElementById('pending-exams');
+            
+            try {
+                const response = await api.get('/doctor/pending');
+                
+                if (!response || !response.success) {
+                    throw new Error('Erreur de chargement');
+                }
+                
+                const exams = response.data;
+                console.log('DEBUG: loadPendingExams -> exams count, sample:', exams.length, exams.slice(0,5));
+                
+                if (exams.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="padding: 2rem;">
+                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                            <h3>Aucun examen en attente</h3>
+                            <p>Tous les examens ont été analysés</p>
+                        </div>
+                    `;
+                    document.getElementById('pending-section').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('pending-section').style.display = 'block';
+                
+                container.innerHTML = `
+                    <div class="pending-grid">
+                        ${exams.map(exam => `
+                            <div class="pending-card" onclick="openAnalyzeModal(${exam.id})">
+                                <div class="pending-badge-row">
+                                    ${exam.status === 'nouveau' ? '<span class="badge badge-danger">Nouveau</span>' : '<span class="badge badge-warning">En attente</span>'}
+                                </div>
+                                <div class="pending-image">
+                                    <img src="${exam.image_display_url || exam.image_preview_url || exam.image_url}" alt="Fond d'œil">
+                                </div>
+                                <div class="pending-info">
+                                    <div class="pending-patient"><strong>${exam.patient_name}</strong></div>
+                                    <div class="pending-meta">
+                                        <span><i class="fas fa-id-card"></i> ${exam.medical_record_number}</span>
+                                        <span><i class="fas fa-eye"></i> ${EYE_LABELS[exam.eye_type] || exam.eye_type}</span>
+                                    </div>
+                                    <div class="pending-time">
+                                        <i class="fas fa-clock"></i> ${DateFormat.relative(exam.created_at)}
+                                    </div>
+                                    <button class="btn btn-primary btn-sm mt-2" style="width: 100%;" onclick="event.stopPropagation(); openAnalyzeModal(${exam.id});">
+                                        <i class="fas fa-brain"></i> Analyser
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.warn('loadPendingExams error, attempting public debug fallback:', error.message);
+                // Fallback: try public debug endpoint (only for local testing)
+                try {
+                    const dbg = await fetch('/api/doctor/debug/pending-all-public');
+                    if (dbg && dbg.ok) {
+                        const dbgJson = await dbg.json();
+                        if (dbgJson && dbgJson.success && Array.isArray(dbgJson.data) && dbgJson.data.length > 0) {
+                            const exams = dbgJson.data;
+                            document.getElementById('pending-section').style.display = 'block';
+                            container.innerHTML = `
+                                <div class="pending-grid">
+                                    ${exams.map(exam => `
+                                        <div class="pending-card" onclick="openAnalyzeModal(${exam.id})">
+                                            <div class="pending-badge-row">
+                                                ${exam.status === 'nouveau' ? '<span class="badge badge-danger">Nouveau</span>' : '<span class="badge badge-warning">En attente</span>'}
+                                            </div>
+                                            <div class="pending-image"><img src="${exam.image_display_url || exam.image_preview_url || exam.image_url}" alt="Fond d\'œil"></div>
+                                            <div class="pending-info">
+                                                <div class="pending-patient"><strong>${exam.patient_name}</strong></div>
+                                                <div class="pending-meta">
+                                                    <span><i class="fas fa-id-card"></i> ${exam.medical_record_number}</span>
+                                                    <span><i class="fas fa-eye"></i> ${EYE_LABELS[exam.eye_type] || exam.eye_type}</span>
+                                                </div>
+                                                <div class="pending-time"><i class="fas fa-clock"></i> ${DateFormat.relative(exam.created_at)}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                            return;
+                        }
+                    }
+                } catch (fallbackErr) {
+                    console.error('Debug fallback error:', fallbackErr);
+                }
+
+                container.innerHTML = `<p class="text-danger">Erreur: ${error.message}</p>`;
+            }
+        }
+        
+        async function openAnalyzeModal(examId) {
+            currentExamId = examId;
+            
+            try {
+                // Mark exam as read immediately when doctor views it
+                try {
+                    await api.get(`/doctor/exams/${examId}`);
+                } catch (error) {
+                    console.error('Error marking exam as read:', error);
+                }
+                
+                // Get pending exam details
+                const response = await api.get('/doctor/pending');
+                const exam = response.data.find(e => e.id === examId);
+                
+                if (!exam) {
+                    Toast.show('Examen non trouvé', 'danger');
+                    return;
+                }
+                
+                // Fill modal
+                document.getElementById('modal-image').src = exam.image_display_url || exam.image_preview_url || exam.image_url;
+                document.getElementById('modal-patient-name').textContent = exam.patient_name;
+                document.getElementById('modal-mrn').textContent = exam.medical_record_number;
+                document.getElementById('modal-age').textContent = exam.patient_age ? `${exam.patient_age} ans` : '-';
+                document.getElementById('modal-eye').textContent = EYE_LABELS[exam.eye_type] || exam.eye_type;
+                document.getElementById('modal-medical-history').textContent = 
+                    exam.medical_history || 'Aucun antécédent renseigné';
+                
+                if (exam.notes) {
+                    document.getElementById('modal-notes').textContent = exam.notes;
+                    document.getElementById('modal-notes-section').style.display = 'block';
+                } else {
+                    document.getElementById('modal-notes-section').style.display = 'none';
+                }
+                
+                // Reset results section
+                document.getElementById('analysis-results').style.display = 'none';
+                document.getElementById('analyze-btn').style.display = 'block';
+                
+                Modal.show('analyze-modal');
+                
+                // Reload exam list to update badges and counts
+                loadStats();
+                loadPendingExams();
+                
+            } catch (error) {
+                Toast.show('Erreur: ' + error.message, 'danger');
+            }
+        }
+        
+        async function analyzeExam() {
+            if (!currentExamId) return;
+            
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('analyze-btn').disabled = true;
+            
+            try {
+                const response = await api.post(`/exams/${currentExamId}/analyze`);
+                
+                if (response && response.success) {
+                    const data = response.data;
+                    
+                    // Show results
+                    document.getElementById('analysis-results').style.display = 'block';
+                    document.getElementById('analyze-btn').style.display = 'none';
+                    
+                    const gradeColors = {
+                        0: 'var(--success)',
+                        1: 'var(--info)',
+                        2: 'var(--warning)',
+                        3: 'var(--danger)',
+                        4: '#7b1fa2'
+                    };
+                    
+                    document.getElementById('result-grade-value').textContent = data.grade;
+                    document.getElementById('result-grade-value').style.color = gradeColors[data.grade];
+                    document.getElementById('result-grade-label').textContent = data.grade_label;
+                    document.getElementById('result-confidence').textContent = 
+                        `Confiance: ${parseFloat(data.confidence || 0).toFixed(1)}%`;
+                    
+                    if (data.heatmap_url) {
+                        document.getElementById('result-heatmap').src = data.heatmap_url;
+                    } else {
+                        document.getElementById('result-heatmap').src = data.image_url;
+                    }
+                    
+                    Toast.show('Analyse terminée avec succès', 'success');
+                    
+                    // Reload lists
+                    loadStats();
+                    loadPendingExams();
+                    loadExams();
+                }
+                
+            } catch (error) {
+                Toast.show('Erreur: ' + error.message, 'danger');
+            } finally {
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('analyze-btn').disabled = false;
+            }
+        }
+        
+        async function loadExams(page = currentPage) {
+            currentPage = page;
+            const search = document.getElementById('search-input').value;
+            const tbody = document.getElementById('exams-table');
+
+            updatePatientsSectionUI();
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="table-empty">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                if (patientsViewMode === 'followed') {
+                    // Followed patients: use patients-summary (patients that have exams assigned to this doctor)
+                    let url = `/doctor/patients-summary?page=${page}`;
+                    if (search) url += `&search=${encodeURIComponent(search)}`;
+
+                    const response = await api.get(url);
+                    if (!response || !response.success) {
+                        throw new Error('Erreur de chargement');
+                    }
+
+                    const { patients, pagination: pag } = response.data;
+
+                    if (!patients || patients.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="table-empty">
+                                    <div class="empty-state">
+                                        <i class="fas fa-user-injured"></i>
+                                        <h3>Aucun patient suivi</h3>
+                                        <p>Vous n'avez encore aucun patient suivi par le système.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        pagination.update(pag);
+                        return;
+                    }
+
+                    tbody.innerHTML = patients.map(p => `
+                        <tr>
+                            <td><span class="mrn-pill">${p.medical_record_number || '-'}</span></td>
+                            <td>
+                                <div class="patient-cell">
+                                    <div class="patient-avatar">${(p.patient_name||'?').trim().charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <div class="patient-name"><strong>${p.patient_name}</strong></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${p.dossier_status === 'nouveau' ? '<span class="badge badge-danger">Nouveau</span>' : p.dossier_status === 'en_attente' ? '<span class="badge badge-warning">En attente</span>' : '<span class="badge badge-secondary">Historique</span>'}</td>
+                            <td>${p.created_at ? DateFormat.formatDateTime(p.created_at) : '-'}</td>
+                            <td>
+                                <div class="table-actions-inline">
+                                    <button class="btn btn-sm btn-outline" onclick="openPatientHistory(${p.patient_id})">
+                                        <i class="fas fa-chart-line"></i> Historique
+                                    </button>
+                                    ${requestExamButtonHtml(p.patient_id, p.patient_name, p.dossier_status)}
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    pagination.update(pag);
+                } else {
+                    // Managed patients: full CRUD (patients created by this doctor)
+                    let url = `/doctor/patients/managed?page=${page}`;
+                    if (search) url += `&search=${encodeURIComponent(search)}`;
+
+                    const response = await api.get(url);
+                    if (!response || !response.success) {
+                        throw new Error('Erreur de chargement');
+                    }
+
+                    const { patients, pagination: pag } = response.data;
+
+                    if (!patients || patients.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="table-empty">
+                                    <div class="empty-state">
+                                        <i class="fas fa-user-injured"></i>
+                                        <h3>Aucun patient trouvé</h3>
+                                        <p>Les patients que vous créez apparaîtront ici</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        pagination.update(pag);
+                        return;
+                    }
+
+                    tbody.innerHTML = patients.map(p => `
+                        <tr>
+                            <td><span class="mrn-pill">${p.medical_record_number || '-'}</span></td>
+                            <td>
+                                <div class="patient-cell">
+                                    <div class="patient-avatar">${(p.full_name||'?').trim().charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <div class="patient-name"><strong>${p.full_name}</strong></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${p.last_exam_date ? DateFormat.formatDateTime(p.last_exam_date) : '-'}</td>
+                            <td>
+                                <div class="table-actions-inline">
+                                    <button class="btn btn-sm btn-outline" onclick="editPatient(${p.id})">
+                                        <i class="fas fa-pen"></i> Modifier
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="requestDeletePatient(${p.id}, '${(p.full_name || '-').replace(/'/g, "&#39;")}')">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    pagination.update(pag);
+                }
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="table-empty text-danger">
+                            Erreur: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function progressionLabel(currentGrade, previousGrade) {
+            if (currentGrade === -1) {
+                return '<span class="text-danger"><i class="fas fa-star"></i> Nouveau</span>';
+            }
+            if (previousGrade === -1) {
+                return '<span class="text-muted">En attente précédente</span>';
+            }
+            if (previousGrade === null || previousGrade === undefined) {
+                return '<span class="text-muted">Premier examen</span>';
+            }
+            if (currentGrade > previousGrade) {
+                return '<span class="text-danger"><i class="fas fa-arrow-up"></i> Aggravation</span>';
+            }
+            if (currentGrade < previousGrade) {
+                return '<span class="text-success"><i class="fas fa-arrow-down"></i> Amélioration</span>';
+            }
+            return '<span class="text-info"><i class="fas fa-minus"></i> Stable</span>';
+        }
+
+        function historyGradeBadge(grade, gradeLabel) {
+            if (grade === -1) {
+                return '<span class="badge badge-danger">Nouveau</span>';
+            }
+            return getGradeBadge(grade);
+        }
+
+        function historyActionCell(examId) {
+            return `<a href="/doctor/exams/${examId}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Ouvrir</a>`;
+        }
+
+        function requestExamButtonHtml(patientId, patientName, dossierStatus) {
+            if (dossierStatus === 'en_attente') {
+                return `<button class="btn btn-sm btn-outline" type="button" disabled title="Demande déjà envoyée"><i class="fas fa-clock"></i> En attente</button>`;
+            }
+
+            return `<button class="btn btn-sm btn-outline" type="button" onclick='requestNewExam(${patientId}, ${JSON.stringify(patientName || "")})'>
+                <i class="fas fa-file-medical"></i> Nouvel examen
+            </button>`;
+        }
+
+        async function requestNewExam(patientId, patientName) {
+            const label = patientName || 'ce patient';
+            if (!window.confirm(`Demander un nouvel examen pour ${label} ?`)) {
+                return;
+            }
+
+            try {
+                const response = await api.post(`/doctor/patients/${patientId}/request-exam`, {});
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Impossible d\'envoyer la demande');
+                }
+
+                Toast.show('Demande envoyée au centre. Le dossier est maintenant en attente.', 'success');
+                await loadExams(currentPage);
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors de la demande', 'danger');
+            }
+        }
+
+        async function openPatientHistory(patientId) {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Chargement...</td></tr>`;
+
+            try {
+                const response = await api.get(`/doctor/patients/${patientId}`);
+                if (!response || !response.success) {
+                    throw new Error('Impossible de charger l\'historique patient');
+                }
+
+                const patient = response.data;
+                document.getElementById('history-patient-name').textContent = patient.full_name || '-';
+                document.getElementById('history-mrn').textContent = patient.medical_record_number || '-';
+                document.getElementById('history-medical').textContent = patient.medical_history || 'Aucun antécédent renseigné';
+
+                const exams = Array.isArray(patient.exams) ? patient.exams : [];
+                const groupedVisits = exams.reduce((acc, exam) => {
+                    if (exam.grade < 0) return acc;
+
+                    const rawDate = exam.exam_date || exam.created_at;
+                    const dateObj = rawDate ? new Date(rawDate) : null;
+                    const visitKey = dateObj
+                        ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`
+                        : String(rawDate || exam.id);
+
+                    if (!acc[visitKey]) {
+                        acc[visitKey] = {
+                            visitDate: rawDate,
+                            examsByEye: {}
+                        };
+                    }
+
+                    const eyeKey = String(exam.eye_type || 'unknown').toLowerCase();
+                    const existing = acc[visitKey].examsByEye[eyeKey];
+                    if (!existing || new Date(exam.created_at || exam.exam_date || 0) > new Date(existing.created_at || existing.exam_date || 0)) {
+                        acc[visitKey].examsByEye[eyeKey] = exam;
+                    }
+                    return acc;
+                }, {});
+
+                const finalHistory = Object.values(groupedVisits)
+                    .map((visit) => {
+                        const visitExams = Object.values(visit.examsByEye || {});
+                        if (visitExams.length === 0) return null;
+
+                        const dominantExam = visitExams.reduce((current, candidate) => {
+                            if (!current) return candidate;
+                            return candidate.grade > current.grade ? candidate : current;
+                        }, null);
+
+                        const avgConfidence = visitExams.reduce((sum, e) => sum + (parseFloat(e.confidence) || 0), 0) / visitExams.length;
+
+                        return {
+                            visitDate: visit.visitDate,
+                            grade: dominantExam.grade,
+                            grade_label: dominantExam.grade_label,
+                            confidence: avgConfidence,
+                            open_exam_id: dominantExam.id
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => new Date(a.visitDate || 0) - new Date(b.visitDate || 0));
+
+                if (finalHistory.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Aucun résultat d'analyse disponible pour ce patient.</td></tr>`;
+                } else {
+                    let previous = null;
+                    tbody.innerHTML = finalHistory.map((item) => {
+                        const row = `
+                            <tr class="history-clickable-row">
+                                <td>${DateFormat.formatDateTime(item.visitDate)}</td>
+                                <td>${historyGradeBadge(item.grade, item.grade_label)}</td>
+                                <td><span class="history-confidence-value">${parseFloat(item.confidence || 0).toFixed(1)}%</span> <span class="history-confidence-meta">(moy.)</span></td>
+                                <td>${progressionLabel(item.grade, previous)}</td>
+                                <td>${historyActionCell(item.open_exam_id)}</td>
+                            </tr>
+                        `;
+                        previous = item.grade;
+                        return row;
+                    }).join('');
+                }
+
+                Modal.show('patient-history-modal');
+            } catch (error) {
+                Toast.show('Erreur: ' + error.message, 'danger');
+            }
+        }
+        
+        window.loadExams = loadExams;
+        window.loadMyPatients = loadMyPatients;
+        window.openAnalyzeModal = openAnalyzeModal;
+        window.openPatientHistory = openPatientHistory;
+        window.requestNewExam = requestNewExam;
+        window.editPatient = editPatient;
+        window.requestDeletePatient = requestDeletePatient;
+        window.confirmDeletePatient = confirmDeletePatient;
+    </script>
+    
+    <style>
+        .table-row-urgent {
+            background-color: rgba(229, 57, 53, 0.05);
+        }
+        .table-row-new {
+            background-color: rgba(229, 57, 53, 0.08);
+        }
+        .section-subtitle {
+            margin: 0.2rem 0 0;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+        .search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 999px;
+            padding: 0 0.75rem;
+            background: #fff;
+            min-width: 280px;
+        }
+        .search-wrap i {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+        .search-wrap .form-control {
+            border: none;
+            box-shadow: none;
+            padding-left: 0;
+            min-height: 38px;
+        }
+        .clean-table thead th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+        .clean-table tbody tr:hover {
+            background: rgba(24, 144, 255, 0.04);
+        }
+        .patient-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .patient-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0077b6, #00a8e8);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .patient-eye {
+            font-size: 0.82rem;
+        }
+        .mrn-pill {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .medical-antecedent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .medical-antecedent-option {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 0.75rem 0.9rem;
+            background: var(--white);
+            cursor: pointer;
+        }
+        .medical-antecedent-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+        .exam-date {
+            font-size: 0.88rem;
+            color: var(--gray-700);
+        }
+        .history-table td {
+            vertical-align: middle;
+        }
+        .history-clickable-row:hover {
+            background: rgba(24, 144, 255, 0.08) !important;
+        }
+        .pending-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        .compact-patient-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .compact-patient-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: 1px solid var(--gray-100);
+            background: #fff;
+        }
+        .patient-avatar-sm {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg,#0077b6,#00a8e8);
+        }
+        .patient-info .patient-name {
+            font-weight: 700;
+        }
+        .patient-meta {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+        .patient-actions { margin-left: auto; display:flex; gap:0.5rem; }
+        .gender-options { display:flex; gap:0.8rem; align-items:center; }
+        .gender-option { display:flex; gap:0.5rem; align-items:center; cursor:pointer; }
+        .welcome-banner-modern {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 12px;
+            background: linear-gradient(90deg, rgba(3,169,244,0.08), rgba(0,188,212,0.04));
+            border: 1px solid rgba(3,169,244,0.08);
+        }
+        .welcome-left { display:flex; align-items:center; gap:0.85rem; }
+        .welcome-avatar { width:56px; height:56px; border-radius: 12px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; background: linear-gradient(135deg,#0077b6,#00a8e8); color:#fff; }
+        .welcome-greeting { font-size:1.15rem; font-weight:700; }
+        .welcome-sub { color:var(--gray-600); font-size:0.95rem; margin-top:0.15rem; }
+        .welcome-actions button { min-width: 170px; }
+        .pending-card {
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pending-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .pending-image {
+            height: 150px;
+            overflow: hidden;
+            background: var(--gray-100);
+        }
+        .pending-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .pending-info {
+            padding: 1rem;
+        }
+        .pending-patient {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .pending-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+        .pending-time {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        .table-actions-inline {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        .welcome-banner {
+            padding: 1rem 0 1.5rem 0;
+        }
+        .welcome-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+        .analysis-result-hero {
+            text-align: center;
+            background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 12px;
+            padding: 1rem 0.75rem;
+        }
+        .analysis-grade-value {
+            font-size: 5rem;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .analysis-grade-label {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-top: 0.45rem;
+            line-height: 1.25;
+        }
+        .analysis-grade-confidence {
+            margin-top: 0.65rem;
+            color: #0b3a5c;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .history-confidence-value {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: #0b3a5c;
+        }
+        .history-confidence-meta {
+            font-size: 0.84rem;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</body>
+</html>
+
+
+

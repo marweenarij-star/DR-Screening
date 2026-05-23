@@ -1,0 +1,74 @@
+@startuml Diabetic_Retinopathy_Activity
+left to right direction
+skinparam backgroundColor #FEFEFE
+skinparam shadowing false
+skinparam activity {
+  BorderColor #2C3E50
+  BackgroundColor #F8FBFF
+  FontColor #1F2937
+}
+skinparam partition {
+  BorderColor #D1D5DB
+  FontColor #111827
+  BackgroundColor #FFFFFF
+}
+
+start
+:Open application;
+:Authenticate user;
+if (Authentication valid?) then (yes)
+  :Identify role;
+  if (Role = Super Admin?) then (yes)
+    partition "Super Admin" {
+      :Access admin dashboard;
+      :Manage centers;
+      :Manage center admins;
+      :View system reports;
+      :Manage system configuration;
+      :View audit logs;
+      :Handle support issues;
+    }
+  else (no)
+    if (Role = Center Admin?) then (yes)
+      partition "Center Admin" {
+        :Open center dashboard;
+        :View statistics;
+        :Register patient;
+        :Register doctor;
+        :Create new screening exam;
+        :Upload patient/exam data;
+        :Submit exam to system;
+        :View exam history;
+        :View patient records;
+        :Generate patient reports;
+        :Send support message;
+        :Open support list;
+        :View support details;
+      }
+      :Send exam to AI service;
+      if (AI result ready?) then (yes)
+        :Store result in history;
+        :Notify doctor if needed;
+      else (no)
+        :Mark exam as pending;
+      endif
+    else (Doctor)
+      partition "Doctor" {
+        :View pending exams;
+        :Open retinal images;
+        :Review exam images;
+        :Check patient history;
+        :Add diagnosis notes;
+        :Validate or complete AI interpretation;
+        :Download exam report;
+        :Receive notifications;
+        :Acknowledge alerts;
+      }
+    endif
+  endif
+  :Logout or continue session;
+else (no)
+  :Show login error;
+endif
+stop
+@enduml

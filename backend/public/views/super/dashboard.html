@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-super">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/super/dashboard" class="sidebar-brand">
+                    <i class="fas fa-shield-halved"></i>
+                    <span>Super Admin</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">Pilotage Global</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-section="centers-section">
+                            <i class="fas fa-hospital"></i>
+                            <span>Centres</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="admins-section">
+                            <i class="fas fa-cogs"></i>
+                            <span>Administration</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="support-section">
+                            <i class="fas fa-life-ring"></i>
+                            <span>Support & Assistance</span>
+                            <span class="nav-alert-badge hidden" id="support-nav-badge">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-cog"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">Super Admin</div>
+                        <div class="user-role">Plateforme</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="super-hero mb-6">
+<h2 class="super-hero-title">Bonjour, Super Admin !</h2>
+            <p class="super-hero-subtitle">Gestion centralisée de vos centres et administrateurs.</p>
+            </div>
+
+            <div class="stats-strip mb-6">
+                <div class="stat-pill"><i class="fas fa-building"></i><div><div class="stat-pill-label">Total centres</div><div class="stat-pill-value" id="stat-total-centers">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-check-circle"></i><div><div class="stat-pill-label">Centres actifs</div><div class="stat-pill-value" id="stat-active-centers">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-hourglass-half"></i><div><div class="stat-pill-label">En attente</div><div class="stat-pill-value" id="stat-pending-centers">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-stethoscope"></i><div><div class="stat-pill-label">Total screenings</div><div class="stat-pill-value" id="stat-total-screenings">0</div></div></div>
+            </div>
+
+            <div id="support-live-alert" class="support-live-alert hidden mb-6">
+                <div>
+                    <strong><i class="fas fa-circle-exclamation"></i> Nouveau message support</strong>
+                    <p id="support-live-alert-text">1 ticket à traiter.</p>
+                </div>
+                <button type="button" class="btn btn-light btn-sm" id="open-support-alert-btn">Ouvrir le support</button>
+            </div>
+
+            <section id="centers-section" class="super-section active">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-title" style="font-size: 1.5rem;">Centres partenaires</h2>
+                        <p class="page-subtitle">Créer, mettre à jour et piloter l'état des centres.</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-center-btn"><i class="fas fa-plus"></i> Nouveau centre</button>
+                </div>
+
+                <div class="card mb-6">
+                    <div class="card-body">
+                        <div class="search-toolbar">
+                            <input type="text" id="centers-search" class="form-control" placeholder="Rechercher un centre, email, téléphone, localisation...">
+                            <select id="centers-status-filter" class="form-control form-select" style="max-width: 220px;">
+                                <option value="">Tous les statuts</option>
+                                <option value="active">Actif</option>
+                                <option value="pending">En attente</option>
+                                <option value="suspended">Suspendu</option>
+                            </select>
+                            <button class="btn btn-secondary" id="centers-search-btn"><i class="fas fa-search"></i> Filtrer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Centre</th>
+                                    <th>Localisation</th>
+                                    <th>Contact</th>
+                                    <th>Statut</th>
+                                    <th>Admin centre</th>
+                                    <th>Screenings</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="centers-table"></tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer"><div id="centers-pagination"></div></div>
+                </div>
+            </section>
+
+            <section id="admins-section" class="super-section">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-title" style="font-size: 1.5rem;">Administration</h2>
+                        <p class="page-subtitle">Gestion complète des admins centres.</p>
+                    </div>
+                </div>
+
+                <h3 class="card-title mb-4">Admins des centres</h3>
+
+                <div class="card mb-6">
+                    <div class="card-body">
+                        <div class="search-toolbar">
+                            <input type="text" id="admins-search" class="form-control" placeholder="Rechercher admin, email ou centre...">
+                            <select id="admins-active-filter" class="form-control form-select" style="max-width: 220px;">
+                                <option value="">Tous</option>
+                                <option value="1">Actifs</option>
+                                <option value="0">Inactifs</option>
+                            </select>
+                            <button class="btn btn-secondary" id="admins-search-btn"><i class="fas fa-search"></i> Filtrer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Centre</th>
+                                    <th>Téléphone</th>
+                                    <th>État</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="admins-table"></tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer"><div id="admins-pagination"></div></div>
+                </div>
+            </section>
+
+            <section id="support-section" class="super-section">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-title" style="font-size: 1.5rem;">Support & Assistance</h2>
+                        <p class="page-subtitle">Gestion centrale des demandes d'assistance des centres.</p>
+                    </div>
+                </div>
+
+                <!-- KPI Dashboard -->
+                <div class="support-kpi-dashboard mb-6">
+                    <div class="support-kpi-card">
+                        <div class="support-kpi-label"><i class="fas fa-inbox"></i> Total</div>
+                        <div class="support-kpi-value" id="kpi-total">0</div>
+                    </div>
+                    <div class="support-kpi-card">
+                        <div class="support-kpi-label"><i class="fas fa-clock"></i> Temps moyen</div>
+                        <div class="support-kpi-value" id="kpi-avg-time">-</div>
+                    </div>
+                    <div class="support-kpi-card highlight">
+                        <div class="support-kpi-label"><i class="fas fa-triangle-exclamation"></i> Critiques</div>
+                        <div class="support-kpi-value" id="kpi-critical">0</div>
+                    </div>
+                    <div class="support-kpi-card">
+                        <div class="support-kpi-label"><i class="fas fa-check-double"></i> Taux résolution</div>
+                        <div class="support-kpi-value" id="kpi-resolution">0%</div>
+                    </div>
+                </div>
+
+                <!-- Support & Assistance Card -->
+                <div class="card mb-6 super-support-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fas fa-life-ring"></i> Tickets support</h3>
+                        </div>
+                        <div class="super-support-actions">
+                            <span class="support-auto-refresh"><i class="fas fa-rotate"></i> Auto</span>
+                            <button class="btn btn-secondary btn-sm" id="refresh-support-btn"><i class="fas fa-rotate"></i> Actualiser</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Recherche globale -->
+                        <div class="support-search-bar mb-4">
+                            <input type="text" id="support-search-input" class="form-control" placeholder="🔍 Rechercher par sujet, centre ou administrateur...">
+                        </div>
+
+                        <!-- Filtres avancés -->
+                        <div class="support-filters-bar mb-4">
+                            <div class="support-filter-group">
+                                <label class="support-filter-label">Statut</label>
+                                <select id="support-filter-status" class="form-control form-select support-inline-select">
+                                    <option value="">Tous</option>
+                                    <option value="open">À traiter</option>
+                                    <option value="in_progress">En traitement</option>
+                                    <option value="resolved">Traité</option>
+                                </select>
+                            </div>
+                            <div class="support-filter-group">
+                                <label class="support-filter-label">Priorité</label>
+                                <select id="support-filter-priority" class="form-control form-select support-inline-select">
+                                    <option value="">Toutes</option>
+                                    <option value="high">Haute</option>
+                                    <option value="normal">Normale</option>
+                                    <option value="low">Basse</option>
+                                </select>
+                            </div>
+                            <div class="support-filter-group">
+                                <label class="support-filter-label">Trier par</label>
+                                <select id="support-sort-by" class="form-control form-select support-inline-select">
+                                    <option value="recent">Plus récent</option>
+                                    <option value="urgent">Plus urgent</option>
+                                    <option value="oldest">Plus ancien</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="reset-filters-btn" style="margin-top: 20px;">Réinitialiser</button>
+                        </div>
+
+                        <!-- Filtres par boutons de statut -->
+                        <div class="super-support-summary mb-4" id="super-support-summary"></div>
+
+                        <!-- Liste des tickets -->
+                        <div id="super-support-list" class="super-support-list">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                        
+                        <!-- Info de mise à jour -->
+                        <div class="support-footer mt-4">
+                            <p class="helper-text mb-0" id="super-support-updated">Mise à jour automatique toutes les 30 secondes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div class="modal" id="center-modal">
+        <div class="modal-dialog" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="center-modal-title">Nouveau centre</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <form id="center-form">
+                <div class="modal-body">
+                    <input type="hidden" id="center-id" name="center_id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="center_name">Nom du centre</label>
+                            <input type="text" id="center_name" name="name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="center_location">Localisation</label>
+                            <input type="text" id="center_location" name="location" class="form-control" placeholder="Ville / Région">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="center_address">Adresse</label>
+                        <textarea id="center_address" name="address" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="center_phone">Téléphone</label>
+                            <input type="text" id="center_phone" name="phone" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="center_email">Email centre</label>
+                            <input type="email" id="center_email" name="email" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="center_status">Statut</label>
+                        <select id="center_status" name="status" class="form-control form-select">
+                            <option value="active">Actif</option>
+                            <option value="pending">En attente</option>
+                            <option value="suspended">Suspendu</option>
+                        </select>
+                    </div>
+
+                    <div id="center-admin-fields">
+                        <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--gray-200);">
+                        <p class="helper-text" style="margin-bottom: 0.5rem;">Un compte administrateur centre est créé automatiquement lors de l'ajout.</p>
+                        <h4 class="card-title" style="margin-bottom: 0.75rem;">Admin associé au centre</h4>
+                        <p class="text-muted" style="margin: 0;">
+                            Le nom admin sera généré automatiquement depuis le nom du centre.<br>
+                            L'email admin sera généré automatiquement au format: <strong>admin.nom-du-centre@drscreening.local</strong>.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="confirm-modal">
+        <div class="modal-dialog" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="confirm-title">Confirmation</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Êtes-vous sûr ?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirm-action-btn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="center-details-modal">
+        <div class="modal-dialog" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Détails du centre</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-cols-2" style="gap: 1rem;">
+                    <div>
+                        <p class="helper-text">ID centre</p>
+                        <p class="detail-value" id="details-center-id">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Nom du centre</p>
+                        <p class="detail-value" id="details-center-name">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Statut</p>
+                        <p class="detail-value" id="details-center-status">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Localisation</p>
+                        <p class="detail-value" id="details-center-location">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Téléphone centre</p>
+                        <p class="detail-value" id="details-center-phone">-</p>
+                    </div>
+                </div>
+                <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--gray-200);">
+                <h4 class="card-title" style="margin-bottom: 0.5rem;">Admin du centre</h4>
+                <div class="grid grid-cols-2" style="gap: 1rem;">
+                    <div>
+                        <p class="helper-text">Nom admin</p>
+                        <p class="detail-value" id="details-admin-name">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Email admin</p>
+                        <p class="detail-value" id="details-admin-email">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">Téléphone admin</p>
+                        <p class="detail-value" id="details-admin-phone">-</p>
+                    </div>
+                    <div>
+                        <p class="helper-text">État admin</p>
+                        <p class="detail-value" id="details-admin-status">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="credentials-modal">
+        <div class="modal-dialog" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="credentials-title">Identifiants admin centre</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="helper-text" id="credentials-subtitle" style="margin-bottom: 1rem;">Conservez ces informations pour la premiere connexion.</p>
+                <div class="credentials-list">
+                    <div class="credential-row">
+                        <div>
+                            <p class="helper-text">Nom</p>
+                            <p class="detail-value" id="cred-admin-name">-</p>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-copy-target="cred-admin-name">Copier</button>
+                    </div>
+                    <div class="credential-row">
+                        <div>
+                            <p class="helper-text">Email</p>
+                            <p class="detail-value" id="cred-admin-email">-</p>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-copy-target="cred-admin-email">Copier</button>
+                    </div>
+                    <div class="credential-row">
+                        <div>
+                            <p class="helper-text">Mot de passe temporaire</p>
+                            <p class="detail-value" id="cred-admin-password">-</p>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-copy-target="cred-admin-password">Copier</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-modal-close>Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="admin-modal">
+        <div class="modal-dialog" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Modifier admin centre</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <form id="admin-form">
+                <div class="modal-body">
+                    <input type="hidden" id="admin-edit-id" name="admin_id">
+                    <div class="form-group">
+                        <label class="form-label required" for="admin_edit_name">Nom</label>
+                        <input type="text" id="admin_edit_name" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="admin_edit_email">Email</label>
+                        <input type="email" id="admin_edit_email" name="email" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="admin_edit_phone">Téléphone</label>
+                        <input type="text" id="admin_edit_phone" name="phone" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let centersPage = 1;
+        let adminsPage = 1;
+        let centersPagination;
+        let adminsPagination;
+        let confirmAction = null;
+        let alertsRefreshTimer = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.checkRole('super_admin')) return;
+
+            const user = Auth.getUser();
+            const superNameEl = document.getElementById('super-welcome-name');
+            if (superNameEl) {
+                superNameEl.textContent = user.name || 'Super Admin';
+            }
+
+            centersPagination = new Pagination(document.getElementById('centers-pagination'), loadCenters);
+            adminsPagination = new Pagination(document.getElementById('admins-pagination'), loadAdmins);
+
+            setupNavigation();
+            setupActions();
+            loadStats();
+            loadCenters();
+            loadAdmins();
+            const savedSectionId = window.localStorage.getItem('super-dashboard-section') || 'centers-section';
+            activateSection(savedSectionId, false).then(() => {
+                if (savedSectionId === 'support-section') {
+                    loadSuperSupport(true);
+                } else {
+                    loadSuperSupport();
+                }
+            });
+
+            alertsRefreshTimer = window.setInterval(loadSuperSupport, 30000);
+        });
+
+        function activateSection(sectionId, persist = true) {
+            document.querySelectorAll('.nav-link').forEach((n) => n.classList.remove('active'));
+            document.querySelectorAll('.super-section').forEach((section) => section.classList.remove('active'));
+
+            const sectionLink = document.querySelector(`[data-section="${sectionId}"]`);
+            const sectionEl = document.getElementById(sectionId);
+
+            if (sectionLink) {
+                sectionLink.classList.add('active');
+            }
+            if (sectionEl) {
+                sectionEl.classList.add('active');
+            }
+
+            if (persist) {
+                window.localStorage.setItem('super-dashboard-section', sectionId);
+            }
+
+            if (sectionId === 'support-section') {
+                return markAllSupportRead().then(() => {
+                    updateSupportAlerts(
+                        window.__lastSupportUnreadCount || 0,
+                        window.__lastSupportPendingCount || 0
+                    );
+                });
+            }
+
+            updateSupportAlerts(
+                window.__lastSupportUnreadCount || 0,
+                window.__lastSupportPendingCount || 0
+            );
+            return Promise.resolve();
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('[data-section]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = link.getAttribute('data-section');
+                    activateSection(sectionId);
+                });
+            });
+        }
+
+        async function markAllSupportRead() {
+            try {
+                await API.put('/super/support/read-all', {});
+                updateSupportAlerts(
+                    0,
+                    window.__lastSupportPendingCount || 0
+                );
+            } catch (error) {
+                console.error('Mark all support read error:', error);
+            }
+        }
+
+        function setupActions() {
+            document.getElementById('add-center-btn').addEventListener('click', () => openCreateCenterModal());
+            document.getElementById('centers-search-btn').addEventListener('click', () => loadCenters(1));
+            document.getElementById('admins-search-btn').addEventListener('click', () => loadAdmins(1));
+            document.getElementById('refresh-support-btn').addEventListener('click', () => loadSuperSupport(true));
+            document.getElementById('super-support-summary').addEventListener('click', (event) => {
+                const button = event.target.closest('[data-support-filter]');
+                if (!button) return;
+                setSupportFilter(button.getAttribute('data-support-filter'));
+            });
+            document.getElementById('open-support-alert-btn').addEventListener('click', () => {
+                const supportLink = document.querySelector('[data-section="support-section"]');
+                if (supportLink) supportLink.click();
+            });
+
+            document.getElementById('center-form').addEventListener('submit', submitCenterForm);
+            document.getElementById('admin-form').addEventListener('submit', submitAdminForm);
+            document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+                btn.addEventListener('click', () => copyCredential(btn.getAttribute('data-copy-target')));
+            });
+
+            document.getElementById('confirm-action-btn').addEventListener('click', async () => {
+                if (!confirmAction) return;
+                try {
+                    await confirmAction();
+                    Modal.hide('confirm-modal');
+                } catch (error) {
+                    Toast.show(error.message || 'Action impossible', 'danger');
+                } finally {
+                    confirmAction = null;
+                }
+            });
+        }
+
+        async function loadStats() {
+            try {
+                const response = await API.get('/super/stats');
+                if (!response || !response.success) return;
+
+                const s = response.data;
+                document.getElementById('stat-total-centers').textContent = s.total_centers;
+                document.getElementById('stat-active-centers').textContent = s.active_centers;
+                document.getElementById('stat-pending-centers').textContent = s.pending_centers;
+                document.getElementById('stat-total-screenings').textContent = s.total_screenings;
+            } catch (error) {
+                console.error('Load stats error:', error);
+            }
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'active') return '<span class="badge badge-success">Actif</span>';
+            if (status === 'pending') return '<span class="badge badge-warning">En attente</span>';
+            return '<span class="badge badge-danger">Suspendu</span>';
+        }
+
+        function getSupportProblemSummary(label) {
+            const value = String(label || '').toLowerCase();
+            if (value.includes('bloqué') || value.includes('connexion')) return 'Accès / connexion';
+            if (value.includes('patient')) return 'Dossier patient';
+            if (value.includes('examen')) return 'Soumission d’examen';
+            if (value.includes('médecin')) return 'Gestion des médecins';
+            if (value.includes('autre')) return 'Autre demande';
+            return 'Support';
+        }
+
+        function getSupportTitleFromProblem(label) {
+            const value = String(label || '').toLowerCase();
+            if (value.includes('bloqué') || value.includes('connexion')) return 'Accès à la plateforme';
+            if (value.includes('patient')) return 'Dossier patient';
+            if (value.includes('examen')) return 'Soumission d’examen';
+            if (value.includes('médecin')) return 'Gestion des médecins';
+            return 'Demande d’assistance';
+        }
+
+        function getSupportStatusLabel(status) {
+            if (status === 'open') return 'À traiter';
+            if (status === 'in_progress') return 'En traitement';
+            if (status === 'resolved') return 'Traité';
+            return 'Inconnu';
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderSupportMessage(rawMessage) {
+            const text = String(rawMessage || '');
+            const lines = text.split(/\r?\n/);
+            const meta = { type: '', priority: '', context: '' };
+            let inDescription = false;
+            const description = [];
+
+            lines.forEach((line) => {
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    if (inDescription) description.push('');
+                    return;
+                }
+                if (trimmed.startsWith('Type de problème:')) {
+                    meta.type = trimmed.replace('Type de problème:', '').trim();
+                    return;
+                }
+                if (trimmed.startsWith('Priorité:')) {
+                    meta.priority = trimmed.replace('Priorité:', '').trim();
+                    return;
+                }
+                if (trimmed.startsWith('Contexte:')) {
+                    meta.context = trimmed.replace('Contexte:', '').trim();
+                    return;
+                }
+                if (trimmed.startsWith('Description détaillée:')) {
+                    inDescription = true;
+                    return;
+                }
+                if (inDescription) {
+                    description.push(trimmed);
+                }
+            });
+
+            const descriptionText = description.join('\n').trim() || text;
+            return `
+                <div class="support-message-structured">
+                    <div class="support-message-summary">
+                        <div class="support-message-summary-chip">
+                            <span class="support-message-summary-label">Type</span>
+                            <strong>${escapeHtml(getSupportProblemSummary(meta.type))}</strong>
+                        </div>
+                        <div class="support-message-summary-chip">
+                            <span class="support-message-summary-label">Contexte</span>
+                            <strong>${escapeHtml(meta.context || 'Aucun contexte')}</strong>
+                        </div>
+                    </div>
+                    <div class="support-message-body">
+                        <div class="support-message-section-title">Fiche support</div>
+                        <div class="support-clinical-grid">
+                            <div class="support-clinical-item">
+                                <span class="super-support-meta-label">Symptôme / motif</span>
+                                <strong>${escapeHtml(getSupportTitleFromProblem(meta.type))}</strong>
+                            </div>
+                            <div class="support-clinical-item">
+                                <span class="super-support-meta-label">Priorité</span>
+                                <strong>${escapeHtml(meta.priority || 'Normale')}</strong>
+                            </div>
+                            <div class="support-clinical-item support-clinical-item-full">
+                                <span class="super-support-meta-label">Demande détaillée</span>
+                                <p class="super-support-message">${escapeHtml(descriptionText)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getActiveSectionId() {
+            const activeSection = document.querySelector('.super-section.active');
+            return activeSection ? activeSection.id : '';
+        }
+
+        function updateSupportAlerts(unreadCount, pendingCount = 0) {
+            window.__lastSupportUnreadCount = unreadCount;
+            window.__lastSupportPendingCount = pendingCount;
+            const navBadge = document.getElementById('support-nav-badge');
+            const alertCard = document.getElementById('support-live-alert');
+            const alertText = document.getElementById('support-live-alert-text');
+            const openSupportBtn = document.getElementById('open-support-alert-btn');
+            const isSupportSectionActive = getActiveSectionId() === 'support-section';
+            const shouldShowAlert = pendingCount > 0;
+
+            if (shouldShowAlert) {
+                navBadge.textContent = String(pendingCount);
+                navBadge.classList.remove('hidden');
+                alertCard.classList.remove('hidden');
+                alertText.textContent = `${pendingCount} ticket${pendingCount > 1 ? 's' : ''} à traiter.`;
+                if (openSupportBtn) {
+                    openSupportBtn.classList.toggle('hidden', isSupportSectionActive);
+                }
+            } else {
+                navBadge.classList.add('hidden');
+                alertCard.classList.add('hidden');
+                alertText.textContent = 'Aucun ticket en attente.';
+                if (openSupportBtn) {
+                    openSupportBtn.classList.remove('hidden');
+                }
+            }
+        }
+
+        function setSupportFilter(status) {
+            window.__supportFilterStatus = status;
+            document.getElementById('support-filter-status').value = status;
+            document.querySelectorAll('[data-support-filter]').forEach((button) => {
+                button.classList.toggle('active', button.getAttribute('data-support-filter') === status);
+            });
+            loadSuperSupport(true);
+        }
+
+        function resetSupportFilters() {
+            document.getElementById('support-search-input').value = '';
+            document.getElementById('support-filter-status').value = '';
+            document.getElementById('support-filter-priority').value = '';
+            document.getElementById('support-sort-by').value = 'recent';
+            window.__supportFilterStatus = 'open';
+            document.getElementById('support-filter-status').value = 'open';
+            loadSuperSupport(true);
+        }
+
+        // Utility functions for support
+        function calculateTimeElapsed(createdAt) {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const diffMs = now - created;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 60) return `${diffMins}m`;
+            if (diffHours < 24) return `${diffHours}h`;
+            if (diffDays < 30) return `${diffDays}j`;
+            return '> 30j';
+        }
+
+        function calculateAverageResponseTime(messages) {
+            if (!messages.filter(m => m.resolved_at).length) return '-';
+            
+            const resolvedTimes = messages
+                .filter(m => m.resolved_at && m.created_at)
+                .map(m => {
+                    const created = new Date(m.created_at);
+                    const resolved = new Date(m.resolved_at);
+                    return (resolved - created) / 3600000; // hours
+                });
+
+            if (!resolvedTimes.length) return '-';
+            
+            const avg = resolvedTimes.reduce((a, b) => a + b, 0) / resolvedTimes.length;
+            if (avg < 1) return `${Math.round(avg * 60)}m`;
+            if (avg < 24) return `${Math.round(avg)}h`;
+            return `${Math.round(avg / 24)}j`;
+        }
+
+        function getPriorityClass(priority) {
+            if (priority === 'high') return 'danger';
+            if (priority === 'normal') return 'warning';
+            return 'info';
+        }
+
+        function getPriorityLabel(priority) {
+            if (priority === 'high') return 'Haute';
+            if (priority === 'normal') return 'Normale';
+            return 'Basse';
+        }
+
+        function toggleSupportDetails(messageId) {
+            const detailsEl = document.getElementById(`support-details-${messageId}`);
+            const toggleBtn = document.querySelector(`[data-support-toggle="${messageId}"]`);
+            if (!detailsEl) return;
+
+            const isHidden = detailsEl.style.display === 'none' || !detailsEl.style.display;
+            detailsEl.style.display = isHidden ? 'block' : 'none';
+
+            if (toggleBtn) {
+                toggleBtn.innerHTML = isHidden
+                    ? '<i class="fas fa-chevron-up"></i> Masquer détails'
+                    : '<i class="fas fa-chevron-down"></i> Voir détails';
+            }
+        }
+
+        function playSupportNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.2);
+
+                gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.02);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.25);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.25);
+            } catch (error) {
+                console.warn('Support notification sound unavailable:', error);
+            }
+        }
+
+        function notifyNewSupportMessage(newCount) {
+            const label = newCount > 1 ? 'nouveaux messages support' : 'nouveau message support';
+            Toast.show(`Vous avez reçu ${newCount} ${label}.`, 'info');
+            playSupportNotificationSound();
+        }
+
+        async function loadSuperSupport(force = false) {
+            const summaryEl = document.getElementById('super-support-summary');
+            const listEl = document.getElementById('super-support-list');
+            const updatedEl = document.getElementById('super-support-updated');
+
+            summaryEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await API.get('/super/support?status=all');
+                if (!response || !response.success) throw new Error('Erreur de chargement');
+
+                const { messages = [], unread_count = 0 } = response.data;
+                const previousUnread = Number.isFinite(window.__supportPreviousUnread)
+                    ? window.__supportPreviousUnread
+                    : unread_count;
+                if (window.__supportInitialized && unread_count > previousUnread) {
+                    notifyNewSupportMessage(unread_count - previousUnread);
+                }
+                window.__supportPreviousUnread = unread_count;
+                window.__supportInitialized = true;
+
+                // Count by status (all messages)
+                const open_count = messages.filter(m => m.status === 'open').length;
+                const in_progress_count = messages.filter(m => m.status === 'in_progress').length;
+                const resolved_count = messages.filter(m => m.status === 'resolved').length;
+                const total_count = messages.length;
+                const avg_time = calculateAverageResponseTime(messages);
+                const critical_count = messages.filter(m => m.priority === 'high' && m.status !== 'resolved').length;
+                const resolution_rate = total_count > 0 ? Math.round((resolved_count / total_count) * 100) : 0;
+
+                updateSupportAlerts(unread_count, open_count);
+
+                // Get filter values
+                const searchText = document.getElementById('support-search-input').value.toLowerCase().trim();
+                const statusFilter = document.getElementById('support-filter-status').value || 'open';
+                const priorityFilter = document.getElementById('support-filter-priority').value;
+                const sortBy = document.getElementById('support-sort-by').value || 'recent';
+
+                // Update KPI dashboard
+                document.getElementById('kpi-total').textContent = total_count;
+                document.getElementById('kpi-avg-time').textContent = avg_time;
+                document.getElementById('kpi-critical').textContent = critical_count;
+                document.getElementById('kpi-resolution').textContent = `${resolution_rate}%`;
+
+                // Render filter buttons
+                summaryEl.innerHTML = `
+                    <button type="button" class="support-filter-button support-filter-open ${statusFilter === 'open' ? 'active' : ''}" data-support-filter="open">
+                        <i class="fas fa-inbox"></i>
+                        <span>À traiter</span>
+                        <strong class="support-filter-count">${open_count}</strong>
+                    </button>
+                    <button type="button" class="support-filter-button support-filter-in-progress ${statusFilter === 'in_progress' ? 'active' : ''}" data-support-filter="in_progress">
+                        <i class="fas fa-spinner"></i>
+                        <span>En traitement</span>
+                        <strong class="support-filter-count">${in_progress_count}</strong>
+                    </button>
+                    <button type="button" class="support-filter-button support-filter-resolved ${statusFilter === 'resolved' ? 'active' : ''}" data-support-filter="resolved">
+                        <i class="fas fa-circle-check"></i>
+                        <span>Traité</span>
+                        <strong class="support-filter-count">${resolved_count}</strong>
+                    </button>
+                `;
+
+                // Filter messages
+                let filteredMessages = messages.filter(msg => {
+                    // Status filter
+                    if (statusFilter && statusFilter !== 'all' && msg.status !== statusFilter) {
+                        return false;
+                    }
+                    // Priority filter
+                    if (priorityFilter && msg.priority !== priorityFilter) {
+                        return false;
+                    }
+                    // Search filter
+                    if (searchText) {
+                        const searchable = `
+                            ${msg.subject || ''} 
+                            ${msg.message || ''} 
+                            ${msg.admin_name || ''} 
+                            ${msg.center_name || ''}
+                        `.toLowerCase();
+                        if (!searchable.includes(searchText)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+
+                // Sort messages
+                filteredMessages = filteredMessages.sort((a, b) => {
+                    if (sortBy === 'urgent') {
+                        // Sort by priority first, then by date
+                        const priorityOrder = { high: 0, normal: 1, low: 2 };
+                        const priorityDiff = (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+                        if (priorityDiff !== 0) return priorityDiff;
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    } else if (sortBy === 'oldest') {
+                        return new Date(a.created_at) - new Date(b.created_at);
+                    } else {
+                        // recent (default)
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    }
+                });
+
+                if (!filteredMessages.length) {
+                    listEl.innerHTML = `
+                        <div class="super-support-empty">
+                            <i class="fas fa-inbox"></i>
+                            <h4>Aucune demande pour ces critères</h4>
+                            <p>Essayez de modifier les filtres ou actualisez la liste.</p>
+                        </div>
+                    `;
+                } else {
+                    listEl.innerHTML = filteredMessages.map((msg) => {
+                        const timeElapsed = calculateTimeElapsed(msg.created_at);
+                        const isUrgent = msg.priority === 'high' && msg.status !== 'resolved' && calculateTimeElapsed(msg.created_at) !== '-';
+                        const priorityLabel = getPriorityLabel(msg.priority);
+                        const statusLabel = getSupportStatusLabel(msg.status);
+                        
+                        return `
+                            <article class="super-support-item super-support-${msg.status}" data-msg-id="${msg.id}">
+                                <div class="super-support-icon">
+                                    <i class="fas fa-${msg.priority === 'high' ? 'triangle-exclamation' : 'comment'}"></i>
+                                </div>
+                                <div class="super-support-content">
+                                    <div class="super-support-head">
+                                        <div>
+                                            <h4>${escapeHtml(getSupportTitleFromProblem(msg.subject))}</h4>
+                                            <p class="super-support-subtitle">
+                                                Reçu de ${escapeHtml(msg.admin_name)} (${escapeHtml(msg.center_name)}) • ${DateFormat.formatDateTime(msg.created_at)}
+                                                ${isUrgent ? `<span class="super-support-time-elapsed"><i class="fas fa-hourglass-end"></i> En attente depuis ${timeElapsed}</span>` : ''}
+                                            </p>
+                                        </div>
+                                        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end;">
+                                            <span class="badge badge-${getPriorityClass(msg.priority)}">Priorité: ${priorityLabel}</span>
+                                            <span class="badge ${msg.status === 'resolved' ? 'badge-success' : (msg.status === 'in_progress' ? 'badge-warning' : 'badge-danger')}">${statusLabel}</span>
+                                            <button type="button" class="btn btn-outline btn-sm" data-support-toggle="${msg.id}" onclick="toggleSupportDetails(${msg.id})">
+                                                <i class="fas fa-chevron-down"></i> Voir détails
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="support-details-${msg.id}" style="display:none; margin-top:0.75rem;">
+                                        <div class="super-support-meta-grid">
+                                            <div><span class="super-support-meta-label">Émetteur</span><strong>${escapeHtml(msg.admin_name)}</strong></div>
+                                            <div><span class="super-support-meta-label">Contact</span><strong>${escapeHtml(msg.admin_email)}</strong></div>
+                                            <div><span class="super-support-meta-label">Centre</span><strong>#${msg.center_id} ${escapeHtml(msg.center_name)}</strong></div>
+                                        </div>
+                                        ${renderSupportMessage(msg.message)}
+                                        <div class="super-support-actions">
+                                            <button type="button" class="support-status-pill status-open ${msg.status === 'open' ? 'active' : ''}" onclick="updateMessageStatus(${msg.id}, 'open')">À traiter</button>
+                                            <button type="button" class="support-status-pill status-in-progress ${msg.status === 'in_progress' ? 'active' : ''}" onclick="updateMessageStatus(${msg.id}, 'in_progress')">En traitement</button>
+                                            <button type="button" class="support-status-pill status-resolved ${msg.status === 'resolved' ? 'active' : ''}" onclick="updateMessageStatus(${msg.id}, 'resolved')">Traité</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        `;
+                    }).join('');
+                }
+
+                updatedEl.textContent = `Dernière mise à jour: ${DateFormat.formatDateTime(new Date().toISOString())}`;
+            } catch (error) {
+                updateSupportAlerts(0);
+                summaryEl.innerHTML = '<span class="badge badge-danger">Impossible de charger les messages</span>';
+                listEl.innerHTML = `<div class="super-support-empty text-danger">${error.message}</div>`;
+            }
+        }
+
+        async function updateMessageStatus(messageId, status) {
+            try {
+                const response = await API.put(`/super/support/${messageId}/status`, { status });
+                if (response && response.success) {
+                    Toast.show('Statut mis à jour', 'success');
+                    loadSuperSupport(true);
+                }
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors de la mise à jour', 'danger');
+            }
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'active') return '<span class="badge badge-success">Actif</span>';
+            if (status === 'pending') return '<span class="badge badge-warning">En attente</span>';
+            return '<span class="badge badge-danger">Suspendu</span>';
+        }
+
+        async function loadCenters(page = centersPage) {
+            centersPage = page;
+            const tbody = document.getElementById('centers-table');
+            const search = document.getElementById('centers-search').value.trim();
+            const status = document.getElementById('centers-status-filter').value;
+
+            tbody.innerHTML = '<tr><td colspan="8" class="table-empty"><div class="loading"><div class="spinner"></div></div></td></tr>';
+
+            try {
+                const response = await API.get(`/super/centers?page=${page}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
+                if (!response || !response.success) throw new Error('Erreur de chargement');
+
+                const { centers, pagination } = response.data;
+                if (!centers.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">Aucun centre trouvé</td></tr>';
+                    centersPagination.update({ current_page: 1, total_pages: 1 });
+                    return;
+                }
+
+                tbody.innerHTML = centers.map(c => `
+                    <tr>
+                        <td><span class="badge badge-info">#${c.id}</span></td>
+                        <td><button class="btn btn-link" onclick="openCenterDetailsModal(${c.id})" style="padding: 0; font-weight: 700;">${c.name}</button></td>
+                        <td>${c.location || '-'}<br><small class="text-muted">${c.address || '-'}</small></td>
+                        <td>${c.phone || '-'}<br><small class="text-muted">${c.email || '-'}</small></td>
+                        <td>${getStatusBadge(c.status)}</td>
+                        <td>${c.admin_name || '-'}<br><small class="text-muted">${c.admin_email || '-'}</small></td>
+                        <td><span class="badge badge-info">${c.screenings_count || 0}</span></td>
+                        <td>
+                            <div class="table-actions">
+                                <button class="btn btn-icon btn-outline" onclick="openCenterDetailsModal(${c.id})" title="Voir détails"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-icon btn-outline" onclick="openEditCenterModal(${c.id})" title="Modifier"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-icon btn-outline" onclick="confirmCenterStatus(${c.id}, '${c.status === 'suspended' ? 'active' : 'suspended'}')" title="${c.status === 'suspended' ? 'Activer' : 'Suspendre'}"><i class="fas ${c.status === 'suspended' ? 'fa-play' : 'fa-ban'}"></i></button>
+                                <button class="btn btn-icon btn-outline" onclick="confirmDeleteCenter(${c.id}, '${c.name.replace(/'/g, "\\'")}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                centersPagination.update(pagination);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="8" class="table-empty text-danger">${error.message}</td></tr>`;
+            }
+        }
+
+        async function loadAdmins(page = adminsPage) {
+            adminsPage = page;
+            const tbody = document.getElementById('admins-table');
+            const search = document.getElementById('admins-search').value.trim();
+            const isActive = document.getElementById('admins-active-filter').value;
+
+            tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><div class="loading"><div class="spinner"></div></div></td></tr>';
+
+            try {
+                const response = await API.get(`/super/admins?page=${page}&search=${encodeURIComponent(search)}&is_active=${encodeURIComponent(isActive)}`);
+                if (!response || !response.success) throw new Error('Erreur de chargement');
+
+                const { admins, pagination } = response.data;
+                if (!admins.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Aucun admin centre trouvé</td></tr>';
+                    adminsPagination.update({ current_page: 1, total_pages: 1 });
+                    return;
+                }
+
+                tbody.innerHTML = admins.map(a => `
+                    <tr>
+                        <td><span class="mrn-pill">#${a.id}</span></td>
+                        <td><strong>${a.name}</strong></td>
+                        <td>${a.email}</td>
+                        <td>${a.center_name}<br><small class="text-muted">${getStatusBadge(a.center_status)}</small></td>
+                        <td>${a.phone || '-'}</td>
+                        <td>${a.is_active ? '<span class="badge badge-success">Actif</span>' : '<span class="badge badge-danger">Inactif</span>'}</td>
+                        <td>
+                            <div class="table-actions">
+                                <button class="btn btn-icon btn-outline" onclick="openEditAdminModal(${a.id}, '${(a.name || '').replace(/'/g, "\\'")}', '${(a.email || '').replace(/'/g, "\\'")}', '${(a.phone || '').replace(/'/g, "\\'")}')" title="Modifier admin"><i class="fas fa-pen"></i></button>
+                                <button class="btn btn-icon btn-outline" onclick="resetAdminPassword(${a.id}, '${(a.name || '').replace(/'/g, "\\'")}', '${(a.email || '').replace(/'/g, "\\'")}')" title="Réinitialiser mot de passe"><i class="fas fa-key"></i></button>
+                                <button class="btn btn-icon btn-outline" onclick="confirmToggleAdmin(${a.id}, ${a.is_active ? 0 : 1})" title="${a.is_active ? 'Désactiver' : 'Activer'}"><i class="fas ${a.is_active ? 'fa-user-slash' : 'fa-user-check'}"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                adminsPagination.update(pagination);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="table-empty text-danger">${error.message}</td></tr>`;
+            }
+        }
+
+        async function openCenterDetailsModal(id) {
+            try {
+                const response = await API.get(`/super/centers/${id}`);
+                if (!response || !response.success) {
+                    throw new Error('Centre introuvable');
+                }
+                const c = response.data;
+                document.getElementById('details-center-id').textContent = c.id || '-';
+                document.getElementById('details-center-name').textContent = c.name || '-';
+                document.getElementById('details-center-status').innerHTML = getStatusBadge(c.status || 'pending');
+                document.getElementById('details-center-location').textContent = c.location || c.address || '-';
+                document.getElementById('details-center-phone').textContent = c.phone || '-';
+                document.getElementById('details-admin-name').textContent = c.admin_name || '-';
+                document.getElementById('details-admin-email').textContent = c.admin_email || '-';
+                document.getElementById('details-admin-phone').textContent = c.admin_phone || '-';
+                document.getElementById('details-admin-status').innerHTML = c.admin_is_active === 1
+                    ? '<span class="badge badge-success">Actif</span>'
+                    : '<span class="badge badge-danger">Inactif</span>';
+                Modal.show('center-details-modal');
+            } catch (error) {
+                Toast.show(error.message, 'danger');
+            }
+        }
+
+        function setCenterAdminMode(isCreateMode) {
+            const adminContainer = document.getElementById('center-admin-fields');
+
+            adminContainer.style.display = isCreateMode ? 'block' : 'none';
+        }
+
+        function openCreateCenterModal() {
+            document.getElementById('center-modal-title').textContent = 'Nouveau centre';
+            document.getElementById('center-form').reset();
+            document.getElementById('center-id').value = '';
+            setCenterAdminMode(true);
+            Modal.show('center-modal');
+            document.getElementById('center_name').focus();
+        }
+
+        async function openEditCenterModal(id) {
+            try {
+                const response = await API.get(`/super/centers/${id}`);
+                if (!response || !response.success) {
+                    throw new Error('Centre introuvable');
+                }
+                const center = response.data;
+
+                document.getElementById('center-modal-title').textContent = 'Modifier centre';
+                document.getElementById('center-id').value = center.id;
+                document.getElementById('center_name').value = center.name || '';
+                document.getElementById('center_location').value = center.location || '';
+                document.getElementById('center_address').value = center.address || '';
+                document.getElementById('center_phone').value = center.phone || '';
+                document.getElementById('center_email').value = center.email || '';
+                document.getElementById('center_status').value = center.status || 'active';
+
+                setCenterAdminMode(false);
+                Modal.show('center-modal');
+            } catch (error) {
+                Toast.show(error.message, 'danger');
+            }
+        }
+
+        async function submitCenterForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('center-id').value;
+            const data = Form.serialize(e.target);
+
+            try {
+                if (id) {
+                    const payload = {
+                        name: data.name,
+                        location: data.location,
+                        address: data.address,
+                        phone: data.phone,
+                        email: data.email,
+                        status: data.status
+                    };
+                    await API.put(`/super/centers/${id}`, payload);
+                    Toast.show('Centre mis à jour', 'success');
+                } else {
+                    const response = await API.post('/super/centers', data);
+                    Toast.show('Centre créé avec succès', 'success');
+                    const generatedData = response && response.data ? response.data : {};
+                    if (generatedData.activation_email_queued) {
+                        Toast.show('Lien d\'activation envoyé à l\'adresse du centre. L\'admin devra suivre le lien pour définir son mot de passe.', 'info');
+                    } else if (generatedData.generated_admin_email || generatedData.generated_admin_password) {
+                        // backward-compat: if a password is explicitly returned, show credentials
+                        showCredentialsModal({
+                            title: 'Admin centre cree automatiquement',
+                            subtitle: 'Voici les identifiants du compte admin genere pour ce centre.',
+                            name: generatedData.generated_admin_name || '-',
+                            email: generatedData.generated_admin_email || '-',
+                            password: generatedData.generated_admin_password || 'Defini manuellement'
+                        });
+                    }
+                }
+
+                Modal.hide('center-modal');
+                loadCenters(centersPage);
+                loadAdmins(adminsPage);
+                loadStats();
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors de la sauvegarde', 'danger');
+            }
+        }
+
+        function askConfirmation(title, message, action) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmAction = action;
+            Modal.show('confirm-modal');
+        }
+
+        function confirmCenterStatus(centerId, targetStatus) {
+            askConfirmation(
+                targetStatus === 'suspended' ? 'Suspendre le centre' : 'Activer le centre',
+                targetStatus === 'suspended' ? 'Le centre sera suspendu et ne pourra plus opérer.' : 'Le centre sera réactivé.',
+                async () => {
+                    await API.put(`/super/centers/${centerId}`, { status: targetStatus });
+                    Toast.show('Statut centre mis à jour', 'success');
+                    await loadCenters(centersPage);
+                    await loadStats();
+                }
+            );
+        }
+
+        function confirmDeleteCenter(centerId, centerName) {
+            askConfirmation(
+                'Supprimer le centre',
+                `Le centre "${centerName}" et ses données associées seront supprimés.`,
+                async () => {
+                    await API.delete(`/super/centers/${centerId}`);
+                    Toast.show('Centre supprimé', 'success');
+                    await loadCenters(centersPage);
+                    await loadAdmins(adminsPage);
+                    await loadStats();
+                }
+            );
+        }
+
+        function confirmToggleAdmin(adminId, isActive) {
+            askConfirmation(
+                isActive ? 'Activer admin centre' : 'Désactiver admin centre',
+                isActive ? 'Ce compte admin sera réactivé.' : 'Ce compte admin sera désactivé.',
+                async () => {
+                    await API.put(`/super/admins/${adminId}/active`, { is_active: isActive });
+                    Toast.show('Statut admin mis à jour', 'success');
+                    await loadAdmins(adminsPage);
+                    await loadStats();
+                }
+            );
+        }
+
+        function resetAdminPassword(adminId, adminName, adminEmail) {
+            askConfirmation(
+                'Réinitialiser mot de passe',
+                'Un nouveau mot de passe temporaire sera généré pour cet admin centre.',
+                async () => {
+                    const response = await API.put(`/super/admins/${adminId}/reset-password`, {});
+                    const generated = response && response.data ? response.data.generated_password : null;
+                    Toast.show('Mot de passe réinitialisé', 'success');
+                    if (generated) {
+                        showCredentialsModal({
+                            title: 'Mot de passe admin reinitialise',
+                            subtitle: 'Partagez ce mot de passe temporaire avec l\'admin concerne.',
+                            name: adminName || '-',
+                            email: adminEmail || '-',
+                            password: generated
+                        });
+                    }
+                }
+            );
+        }
+
+        function openEditAdminModal(id, name, email, phone) {
+            document.getElementById('admin-edit-id').value = id;
+            document.getElementById('admin_edit_name').value = name || '';
+            document.getElementById('admin_edit_email').value = email || '';
+            document.getElementById('admin_edit_phone').value = phone || '';
+            Modal.show('admin-modal');
+            document.getElementById('admin_edit_name').focus();
+        }
+
+        async function submitAdminForm(e) {
+            e.preventDefault();
+            const data = Form.serialize(e.target);
+            const adminId = document.getElementById('admin-edit-id').value;
+
+            try {
+                await API.put(`/super/admins/${adminId}`, {
+                    name: data.name,
+                    email: data.email,
+                    phone: data.phone
+                });
+                Toast.show('Admin centre mis à jour', 'success');
+                Modal.hide('admin-modal');
+                await loadAdmins(adminsPage);
+                await loadCenters(centersPage);
+            } catch (error) {
+                Toast.show(error.message || 'Modification impossible', 'danger');
+            }
+        }
+
+        function showCredentialsModal({ title, subtitle, name, email, password }) {
+            document.getElementById('credentials-title').textContent = title || 'Identifiants admin centre';
+            document.getElementById('credentials-subtitle').textContent = subtitle || 'Conservez ces informations pour la premiere connexion.';
+            document.getElementById('cred-admin-name').textContent = name || '-';
+            document.getElementById('cred-admin-email').textContent = email || '-';
+            document.getElementById('cred-admin-password').textContent = password || '-';
+            Modal.show('credentials-modal');
+
+                function showInfoModal({ title, message }) {
+                    Toast.show((title ? title + ' - ' : '') + (message || ''), 'info');
+                }
+        }
+
+        async function copyCredential(targetId) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+
+            const value = (target.textContent || '').trim();
+            if (!value || value === '-') {
+                Toast.show('Aucune valeur a copier', 'warning');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(value);
+                Toast.show('Valeur copiée', 'success');
+            } catch (error) {
+                Toast.show('Copie impossible', 'danger');
+            }
+        }
+    </script>
+
+    <style>
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar-logout-btn {
+            width: 100%;
+            margin-top: 0.9rem;
+            justify-content: center;
+            color: var(--white);
+            border-color: rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .sidebar-logout-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: var(--white);
+        }
+
+        .super-hero {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f8fb 100%);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: 1.2rem 1.35rem;
+        }
+
+        .super-hero-title {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .super-hero-subtitle {
+            margin: 0.25rem 0 0 0;
+            color: var(--gray-600);
+            font-size: 0.95rem;
+        }
+
+        .topbar-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0.85rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 999px;
+            background: var(--white);
+            color: var(--gray-800);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .super-section {
+            display: none;
+        }
+
+        .super-section.active {
+            display: block;
+        }
+
+        .nav-alert-badge {
+            margin-left: auto;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: var(--danger);
+            color: var(--white);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.35rem;
+        }
+
+        .support-live-alert {
+            border: 1px solid #ef4444;
+            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 45%, #ef4444 100%);
+            border-left: 6px solid #fecaca;
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            box-shadow: 0 12px 32px rgba(220, 38, 38, 0.28);
+            animation: supportAlertPulse 1.8s ease-in-out infinite;
+        }
+
+        .support-live-alert strong {
+            color: #fff;
+            font-size: 1rem;
+            letter-spacing: 0.01em;
+        }
+
+        .support-live-alert p {
+            margin: 0.25rem 0 0 0;
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .support-live-alert .btn-light {
+            background: #fff;
+            color: #b91c1c;
+            border-color: rgba(255, 255, 255, 0.35);
+            font-weight: 700;
+        }
+
+        .support-live-alert .btn-light:hover {
+            background: #fff5f5;
+            color: #991b1b;
+        }
+
+        @keyframes supportAlertPulse {
+            0%, 100% {
+                transform: translateY(0);
+                box-shadow: 0 12px 32px rgba(220, 38, 38, 0.24);
+            }
+            50% {
+                transform: translateY(-1px);
+                box-shadow: 0 16px 38px rgba(220, 38, 38, 0.34);
+            }
+        }
+
+        .support-message-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .support-message-summary-chip {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: var(--white);
+            padding: 0.75rem 0.85rem;
+            display: grid;
+            gap: 0.2rem;
+        }
+
+        .super-support-message-title {
+            margin: 0 0 0.35rem 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .support-message-summary-label,
+        .super-support-meta-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray-500);
+        }
+
+        .support-message-body {
+            border-top: 1px solid var(--gray-200);
+            padding-top: 0.85rem;
+        }
+
+        .support-clinical-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .support-clinical-item {
+            padding: 0.75rem 0.85rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: var(--white);
+            display: grid;
+            gap: 0.2rem;
+        }
+
+        .support-clinical-item-full {
+            grid-column: 1 / -1;
+        }
+
+        .support-message-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 0.35rem;
+        }
+
+        .super-support-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .super-support-meta-grid > div {
+            padding: 0.65rem 0.75rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+        }
+
+        .support-message-structured {
+            margin: 0.5rem 0;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: var(--gray-50);
+        }
+
+        .support-message-meta-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.6rem;
+        }
+
+        .super-support-message {
+            margin: 0;
+            white-space: pre-wrap;
+            line-height: 1.45;
+            color: var(--gray-800);
+        }
+
+        .super-support-item {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            padding: 1rem 1rem 1.15rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .super-support-item.super-support-open {
+            border-left: 4px solid var(--danger);
+        }
+
+        .super-support-item.super-support-in_progress {
+            border-left: 4px solid var(--warning);
+        }
+
+        .super-support-item.super-support-resolved {
+            border-left: 4px solid var(--success);
+            opacity: 0.95;
+        }
+
+        .super-support-content {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .super-support-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .super-support-head h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .super-support-subtitle {
+            margin: 0.3rem 0 0;
+            color: var(--gray-500);
+            font-size: 0.88rem;
+        }
+
+        .super-support-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .support-auto-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            color: var(--gray-500);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .super-support-summary {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .support-filter-button,
+        .support-status-pill {
+            border: 1px solid #d8e1ee;
+            background: #f7faff;
+            color: var(--gray-700);
+            border-radius: 999px;
+            padding: 0.55rem 0.95rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .support-filter-button {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .support-filter-count {
+            margin-left: 0.2rem;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 0.4rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+        }
+
+        .support-filter-button:hover,
+        .support-status-pill:hover {
+            background: #fff;
+            border-color: var(--primary-300);
+            color: var(--primary-700);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .support-filter-button.active,
+        .support-status-pill.active {
+            background: linear-gradient(135deg, var(--primary-600) 0%, #1d4ed8 100%);
+            border-color: var(--primary-600);
+            color: #fff;
+        }
+
+        .support-filter-button.active .support-filter-count {
+            background: rgba(255, 255, 255, 0.22);
+            color: #fff;
+        }
+
+        .support-filter-open.active,
+        .status-open.active {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            border-color: #dc2626;
+        }
+
+        .support-filter-in-progress.active,
+        .status-in-progress.active {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+            border-color: #d97706;
+        }
+
+        .support-filter-resolved.active,
+        .status-resolved.active {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border-color: #059669;
+        }
+
+        .super-support-item:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .super-support-empty {
+            text-align: center;
+            padding: 2rem 1rem;
+            border: 1px dashed var(--gray-300);
+            border-radius: var(--radius-xl);
+            background: #fcfdff;
+            color: var(--gray-600);
+        }
+
+        .super-support-empty i {
+            font-size: 1.8rem;
+            color: var(--gray-400);
+            margin-bottom: 0.5rem;
+        }
+
+        .super-support-empty h4 {
+            margin: 0.25rem 0 0.35rem 0;
+        }
+
+        .detail-value {
+            margin: 0;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .credentials-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .credential-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            background: var(--gray-50);
+        }
+
+        @media (max-width: 900px) {
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .topbar-right {
+                width: 100%;
+            }
+        }
+
+        .table th:last-child,
+        .table td:last-child {
+            width: 140px;
+        }
+
+        .super-alerts-card .card-header {
+            gap: 1rem;
+        }
+
+        .super-alerts-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .super-alerts-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .super-alerts-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .super-alert-item {
+            display: grid;
+            grid-template-columns: 44px 1fr;
+            gap: 0.9rem;
+            align-items: flex-start;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 0.9rem 1rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+        }
+
+        .super-alert-item.super-alert-danger {
+            border-left: 4px solid var(--danger);
+        }
+
+        .super-alert-item.super-alert-warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .super-alert-item.super-alert-info {
+            border-left: 4px solid var(--info);
+        }
+
+        .super-alert-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .super-alert-danger .super-alert-icon {
+            background: rgba(199, 74, 74, 0.12);
+            color: var(--danger);
+        }
+
+        .super-alert-warning .super-alert-icon {
+            background: rgba(201, 130, 44, 0.12);
+            color: var(--warning);
+        }
+
+        .super-alert-info .super-alert-icon {
+            background: rgba(36, 128, 168, 0.12);
+            color: var(--info);
+        }
+
+        .super-alert-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .super-alert-head h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .super-alert-meta {
+            margin: 0.35rem 0 0 0;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .super-alert-empty {
+            border: 1px dashed var(--gray-300);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            text-align: center;
+            color: var(--gray-600);
+            background: var(--gray-50);
+        }
+    </style>
+</body>
+</html>

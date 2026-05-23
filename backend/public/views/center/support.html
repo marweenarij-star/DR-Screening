@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support & Assistance - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-center">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/center/dashboard" class="sidebar-brand">
+                    <i class="fas fa-hospital"></i>
+                    <span>Admin Centre</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">Gestion</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/dashboard" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/doctors" class="nav-link">
+                            <i class="fas fa-stethoscope"></i>
+                            <span>Médecins</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="nav-section">Dépistage</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/new-exam" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Nouveau dépistage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/history" class="nav-link">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span>Historique</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/support" class="nav-link active">
+                            <i class="fas fa-life-ring"></i>
+                            <span>Support & Assistance</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar"><i class="fas fa-user-tie"></i></div>
+                    <div class="user-details">
+                        <div class="user-name" id="center-admin-name">Admin</div>
+                        <div class="user-role" id="center-name">Centre</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Support & Assistance</h1>
+                    <p class="page-subtitle">Consultez vos messages et ouvrez chaque demande en détail.</p>
+                </div>
+                <button class="btn btn-primary btn-sm" id="new-support-ticket-btn"><i class="fas fa-plus"></i> Nouveau message</button>
+            </div>
+
+            <section class="card mb-6">
+                <div class="card-body">
+                    <div id="support-tickets-list">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="support-ticket-modal">
+        <div class="modal-dialog" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Envoyer un message au super admin</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <form id="support-ticket-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label required" for="ticket_problem_type">Problème prédéfini</label>
+                        <select id="ticket_problem_type" name="problem_type" class="form-control form-select" required>
+                            <option value="">Choisir un problème...</option>
+                            <option value="access_blocked">Compte bloqué / connexion impossible</option>
+                            <option value="patient_data">Problème dossier patient</option>
+                            <option value="exam_submission">Erreur soumission d'examen</option>
+                            <option value="ai_diagnostic_claim">Problème diagnostique IA / réclamation docteur</option>
+                            <option value="doctor_management">Problème gestion médecins</option>
+                            <option value="other">Autre demande d'assistance</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="ticket_subject">Sujet</label>
+                        <input type="text" id="ticket_subject" name="subject" class="form-control" required placeholder="Décrivez le problème ou votre demande">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="ticket_priority">Priorité</label>
+                        <select id="ticket_priority" name="priority" class="form-control form-select" required>
+                            <option value="low">Faible - Question ou demande mineure</option>
+                            <option value="medium" selected>Moyen - Problème modéré</option>
+                            <option value="high">Urgent - Problème critique ou bloquant</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="ticket_context">Contexte (optionnel)</label>
+                        <input type="text" id="ticket_context" name="context" class="form-control" placeholder="Ex: Patient ID, date, écran concerné...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required" for="ticket_message">Message détaillé</label>
+                        <textarea id="ticket_message" name="message" class="form-control" rows="5" required placeholder="Expliquez le problème ou votre demande..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Envoyer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="support-detail-modal">
+        <div class="modal-dialog" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Détails du message</h3>
+                <button class="modal-close" data-modal-close>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-grid">
+                    <div class="detail-row"><strong>Sujet:</strong> <span id="detail-subject">-</span></div>
+                    <div class="detail-row"><strong>Priorité:</strong> <span id="detail-priority">-</span></div>
+                    <div class="detail-row"><strong>Statut:</strong> <span id="detail-status">-</span></div>
+                    <div class="detail-row"><strong>Date:</strong> <span id="detail-date">-</span></div>
+                </div>
+                <div class="detail-message-wrapper">
+                    <div class="detail-message-title">Message complet</div>
+                    <pre id="detail-message" class="detail-message-content">-</pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let supportMessages = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.isAuthenticated()) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const user = Auth.getUser();
+            if (user.role !== 'center_admin') {
+                window.location.href = '/login';
+                return;
+            }
+
+            document.getElementById('center-admin-name').textContent = user.name || 'Admin';
+            setupActions();
+            await loadSupportTickets();
+            window.setInterval(loadSupportTickets, 30000);
+        });
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function setupActions() {
+            document.getElementById('new-support-ticket-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                Modal.show('support-ticket-modal');
+            });
+
+            document.getElementById('support-ticket-form').addEventListener('submit', submitSupportTicket);
+
+            document.getElementById('support-tickets-list').addEventListener('click', (event) => {
+                const detailBtn = event.target.closest('[data-message-id]');
+                if (!detailBtn) return;
+
+                const id = Number(detailBtn.dataset.messageId);
+                const message = supportMessages.find((item) => Number(item.id) === id);
+                if (!message) return;
+
+                showSupportDetails(message);
+            });
+        }
+
+        async function loadSupportTickets() {
+            const listEl = document.getElementById('support-tickets-list');
+            listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await API.get('/center/support/messages');
+                if (!response || !response.success) throw new Error(response?.error || 'Erreur de chargement');
+
+                supportMessages = response.data.messages || [];
+                if (!supportMessages.length) {
+                    listEl.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Aucun message pour le moment.</p></div>';
+                    return;
+                }
+
+                listEl.innerHTML = `
+                    <ul class="support-message-list">
+                        ${supportMessages.map((msg) => `
+                            <li class="support-message-item support-ticket-${msg.status}">
+                                <div class="ticket-main">
+                                    <div class="ticket-title-row">
+                                        <h4>${escapeHtml(String(msg.subject || '').replace(/^\[[^\]]+\]\s*/, ''))}</h4>
+                                        <div class="ticket-badges">
+                                            ${msg.priority === 'high' ? '<span class="badge badge-danger">Urgent</span>' : msg.priority === 'medium' ? '<span class="badge badge-warning">Moyen</span>' : '<span class="badge badge-info">Faible</span>'}
+                                            ${msg.status === 'open' ? '<span class="badge badge-danger">Ouvert</span>' : msg.status === 'in_progress' ? '<span class="badge badge-warning">En cours</span>' : '<span class="badge badge-success">Résolu</span>'}
+                                        </div>
+                                    </div>
+                                    <p class="ticket-preview">${escapeHtml((msg.message || '').split('\n')[0] || 'Sans contenu')}</p>
+                                    <p class="ticket-date"><i class="fas fa-clock"></i> ${DateFormat.formatDateTime(msg.created_at)}</p>
+                                </div>
+                                <div class="ticket-actions">
+                                    <button type="button" class="btn btn-outline btn-sm" data-message-id="${Number(msg.id)}">
+                                        <i class="fas fa-eye"></i> Détails
+                                    </button>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                listEl.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i> ${escapeHtml(error.message || 'Erreur')}</div>`;
+            }
+        }
+
+        async function submitSupportTicket(e) {
+            e.preventDefault();
+
+            const problemTypeEl = document.getElementById('ticket_problem_type');
+            const subject = document.getElementById('ticket_subject').value.trim();
+            const message = document.getElementById('ticket_message').value.trim();
+            const context = document.getElementById('ticket_context').value.trim();
+            const priority = document.getElementById('ticket_priority').value;
+            const problemType = problemTypeEl.value;
+            const problemTypeLabel = problemTypeEl.selectedOptions.length ? problemTypeEl.selectedOptions[0].text : 'Non précisé';
+
+            if (!problemType || !subject || !message) {
+                Toast.show('Problème, sujet et message requis', 'danger');
+                return;
+            }
+
+            const structuredSubject = `[${problemTypeLabel}] ${subject}`;
+            const structuredMessage = [
+                `Type de problème: ${problemTypeLabel}`,
+                `Priorité: ${priority}`,
+                `Contexte: ${context || 'Non précisé'}`,
+                '',
+                'Description détaillée:',
+                message
+            ].join('\n');
+
+            try {
+                const response = await API.post('/center/support/send', {
+                    subject: structuredSubject,
+                    message: structuredMessage,
+                    priority
+                });
+
+                if (!response || !response.success) throw new Error(response?.error || 'Erreur serveur');
+                Toast.show('Message envoyé avec succès', 'success');
+                document.getElementById('support-ticket-form').reset();
+                Modal.hide('support-ticket-modal');
+                await loadSupportTickets();
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors de l\'envoi', 'danger');
+            }
+        }
+
+        function showSupportDetails(message) {
+            const priorityLabel = message.priority === 'high'
+                ? 'Urgent'
+                : message.priority === 'medium'
+                    ? 'Moyen'
+                    : 'Faible';
+            const statusLabel = message.status === 'open'
+                ? 'Ouvert'
+                : message.status === 'in_progress'
+                    ? 'En cours'
+                    : 'Résolu';
+
+            document.getElementById('detail-subject').textContent = String(message.subject || '').replace(/^\[[^\]]+\]\s*/, '') || '-';
+            document.getElementById('detail-priority').textContent = priorityLabel;
+            document.getElementById('detail-status').textContent = statusLabel;
+            document.getElementById('detail-date').textContent = DateFormat.formatDateTime(message.created_at);
+            document.getElementById('detail-message').textContent = message.message || '-';
+
+            Modal.show('support-detail-modal');
+        }
+    </script>
+
+    <style>
+        .support-message-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 0.9rem;
+        }
+        .support-message-item {
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 1rem 1.1rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--gray-300);
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .support-ticket-open { border-left-color: var(--danger); }
+        .support-ticket-in_progress { border-left-color: var(--warning); }
+        .support-ticket-resolved { border-left-color: var(--success); }
+        .ticket-main { flex: 1; min-width: 0; }
+        .ticket-title-row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .ticket-title-row h4 { margin: 0; font-size: 1rem; }
+        .ticket-preview {
+            margin: 0.45rem 0 0;
+            color: var(--gray-700);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .ticket-date { margin: 0.4rem 0 0; font-size: 0.85rem; color: var(--gray-600); }
+        .ticket-badges { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .ticket-actions { display: flex; align-items: center; }
+        .empty-state { text-align: center; padding: 2rem 1rem; color: var(--gray-600); }
+        .error-message { text-align: center; padding: 1rem; color: var(--danger); }
+        .detail-grid { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+        .detail-row { color: var(--gray-800); }
+        .detail-message-wrapper {
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 0.75rem;
+            background: #fafcff;
+        }
+        .detail-message-title { font-weight: 600; margin-bottom: 0.4rem; }
+        .detail-message-content {
+            margin: 0;
+            white-space: pre-wrap;
+            font-family: inherit;
+            color: var(--gray-700);
+        }
+        @media (max-width: 768px) {
+            .support-message-item {
+                flex-direction: column;
+            }
+            .ticket-title-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</body>
+</html>

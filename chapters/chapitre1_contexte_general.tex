@@ -1,0 +1,274 @@
+% =========================
+% CHAPITRE 1 : CONTEXTE GENERAL
+% Fichier a inclure depuis le rapport principal via \input{chapters/chapitre1_contexte_general}
+% =========================
+
+\chapter{Contexte general}
+\label{chap:contexte_general}
+
+\section{Introduction}
+Le diabete sucré constitue aujourd'hui l'une des maladies chroniques les plus repandues dans le monde.
+Parmi ses complications, la retinopathie diabetique (RD) est particulierement critique car elle peut evoluer
+silencieusement pendant plusieurs annees avant l'apparition de symptomes visuels severes.
+Sans depistage precoce, cette pathologie peut conduire a une perte de vision irreversible, voire a la cecite.
+
+Sur le plan epidemiologique, la charge de morbidite est considerable. Les donnees de reference
+internationales (CDC/OMS, reprises dans les ressources Kaggle de depistage de la RD) indiquent
+que plus de 347 millions de personnes vivent avec le diabete dans le monde,
+qu'environ 29.1 millions de personnes sont diabetiques aux Etats-Unis,
+que la retinopathie diabetique concerne plus de 93 millions de personnes,
+et qu'environ 40\% a 45\% des patients diabetiques presentent un certain stade de RD.
+Ces chiffres confirment que la RD constitue un enjeu majeur de sante publique,
+notamment dans les populations actives.
+\textit{Sources : OMS (2024), CDC (2026), NCBI StatPearls (2023).}
+
+Dans les structures de soins, la prise en charge repose encore majoritairement sur une lecture manuelle des images
+de fond d'oeil par des specialistes. Cette approche est fiable, mais elle devient difficile a generaliser a grande
+échelle en raison du volume de patients, des delais et du manque d'ophtalmologues dans certaines regions.
+
+Dans ce cadre, l'intelligence artificielle (IA) apparait comme une solution d'assistance clinique pertinente :
+elle permet d'automatiser une pre-analyse des images, de prioriser les cas urgents et de soutenir la decision
+medicale sans remplacer l'expertise du medecin.
+
+\section{Definition de la maladie}
+\subsection{Diabete : rappel general}
+Le diabete est une maladie metabolique caracterisee par une hyperglycemie chronique.
+Cette hyperglycemie peut resulter d'un deficit de secretion d'insuline, d'une resistance a l'insuline,
+ou d'une combinaison des deux. A long terme, l'exces de glucose sanguin provoque des atteintes vasculaires
+et nerveuses qui touchent plusieurs organes (oeil, rein, coeur, systeme nerveux).
+
+\subsection{Types de diabete}
+\begin{itemize}
+    \item \textbf{Diabete de type 1} : maladie auto-immune, destruction des cellules beta pancreatiques,
+    dependance a l'insuline.
+    \item \textbf{Diabete de type 2} : forme la plus frequente, associee a l'insulino-resistance et au mode de vie.
+    \item \textbf{Diabete gestationnel} : hyperglycemie detectee pendant la grossesse.
+    \item \textbf{Autres formes} : causes genetiques, endocriniennes ou medicamenteuses.
+\end{itemize}
+
+\subsection{Anatomie de l'oeil et zones d'interet}
+Pour comprendre la retinopathie diabetique, il est essentiel de rappeler les structures oculaires impliquees
+dans le diagnostic :
+\begin{itemize}
+    \item \textbf{Retine} : tissu neurosensoriel convertissant la lumiere en influx nerveux.
+    \item \textbf{Macula} : zone centrale de la vision fine, critique pour la lecture et la precision visuelle.
+    \item \textbf{Fovea} : centre de la macula, point de plus haute acuite visuelle.
+    \item \textbf{Papille optique} : zone d'emergence du nerf optique.
+    \item \textbf{Vaisseaux retiniens} : structures les plus affectees par les complications diabetiques.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.72\textwidth]{images/ch1/anatomie_oeil.png}
+    \caption{Anatomie simplifiee de l'oeil et principales zones d'interet pour le depistage de la RD.}
+    \label{fig:anatomie_oeil_ch1}
+\end{figure}
+
+\subsection{Retinopathie diabetique : mecanisme et progression}
+La retinopathie diabetique (RD) est une microangiopathie chronique de la retine associee
+a un diabete mal controle ou ancien. L'hyperglycemie prolongee, associee a d'autres facteurs
+de risque (hypertension arterielle, dyslipidemie, surcharge ponderale), fragilise l'endothelium
+vasculaire et provoque des anomalies progressives de la microcirculation retinienne.
+
+\subsubsection*{Lesions retiniennes elementaires}
+Dans les images du fond d'oeil, la RD est principalement reconnue par la presence de lesions
+vasculaires caracteristiques :
+\begin{itemize}
+    \item microanevrismes ;
+    \item hemorragies intraretiniennes ;
+    \item exsudats lipidiques ;
+    \item exsudats cotonneux (zones d'ischemie nerveuse) ;
+    \item anomalies veineuses (beading, irregularites) et ischemie ;
+    \item neovascularisation dans les stades avances.
+\end{itemize}
+
+\subsubsection*{Stades cliniques : forme non proliferante et proliferante}
+Sur le plan clinique, la progression suit deux grandes phases.
+
+\paragraph{1) Retinopathie diabetique non proliferante (NPDR)}
+Il s'agit du stade initial, le plus frequent au debut de l'evolution. Les petits vaisseaux
+retiniens deviennent permeables, avec fuite de sang et de liquide. Cette fuite peut entrainer
+un oedeme maculaire, cause majeure de baisse visuelle chez les personnes diabetiques.
+Dans les stades non proliferants, la vision peut rester longtemps peu alteree, ce qui retarde
+la consultation et renforce l'importance du depistage periodique.
+
+\paragraph{2) Retinopathie diabetique proliferante (PDR)}
+Lorsque l'ischemie retinienne devient importante (vaisseaux occlus), la retine declenche
+une neovascularisation pathologique. Ces nouveaux vaisseaux sont fragiles, inefficaces
+et susceptibles de saigner dans le vitre, provoquant flou visuel et corps flottants.
+Le stade proliferant est associe a un risque eleve de complications severes.
+
+\subsubsection*{Complications majeures des formes avancees}
+\begin{itemize}
+    \item \textbf{Hemorragie du vitre} : baisse visuelle brutale, parfois severe.
+    \item \textbf{Fibrose retinienne} : formation de tissu cicatriciel pouvant deformer la retine.
+    \item \textbf{Decollement tractionnel de retine} : urgence fonctionnelle menacant la vision centrale.
+    \item \textbf{Glaucome neovasculaire} : obstruction de l'angle irido-corneen et elevation rapide
+    de la pression intraoculaire.
+\end{itemize}
+
+\subsubsection*{Classification simplifiee exploitee dans le projet}
+Pour la modelisation IA et l'evaluation, on retient une gradation en cinq niveaux :
+\begin{enumerate}
+    \item \textbf{Absence de RD} ;
+    \item \textbf{RD non proliferante legere} ;
+    \item \textbf{RD non proliferante moderee} ;
+    \item \textbf{RD non proliferante severe} ;
+    \item \textbf{RD proliferante} (risque eleve de perte visuelle).
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/ch1/stades_retinopathie.png}
+    \caption{Exemple visuel des stades de progression de la retinopathie diabetique.}
+    \label{fig:stades_rd_ch1}
+\end{figure}
+
+\paragraph{Lien avec le depistage automatise}
+Les informations precedentes montrent qu'une detection rapide des lesions est essentielle
+pour eviter la progression vers les formes proliferantes. C'est exactement l'objectif
+des systemes d'aide au depistage automatise : analyser les images de fond d'oeil,
+estimer un grade de severite et orienter en priorite les patients a risque eleve.
+
+\section{Methodes de diagnostic existantes}
+\subsection{Examen clinique du fond d'oeil}
+L'examen du fond d'oeil est la methode standard pour observer les lesions retiniennes.
+Il peut etre realise avec ou sans dilatation pupillaire, selon le contexte clinique.
+
+\subsection{Retinographie couleur}
+La retinographie permet de capturer des images numeriques du fond d'oeil.
+Elle facilite l'archivage, la tele-expertise et le suivi longitudinal des patients.
+
+\subsection{Tomographie en coherence optique (OCT)}
+L'OCT fournit des coupes de la retine a haute resolution.
+Cette technique est particulierement utile pour detecter l'oedeme maculaire diabetique.
+
+\subsection{Angiographie retinienne}
+L'angiographie a la fluoresceine visualise la perfusion vasculaire et les zones de fuite.
+Bien qu'informative, elle est plus invasive et plus couteuse.
+
+\subsection{Tele-ophtalmologie}
+La tele-ophtalmologie permet de capturer localement les images puis de les transmettre
+a un expert a distance. Cette approche augmente l'accessibilite au depistage.
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des principales methodes de diagnostic de la retinopathie diabetique.}
+\label{tab:comparaison_diagnostic_ch1}
+\begin{tabular}{|p{3.8cm}|p{3.2cm}|p{3.6cm}|p{3.6cm}|}
+\hline
+\textbf{Methode} & \textbf{Atouts} & \textbf{Limites} & \textbf{Contexte d'usage} \\
+\hline
+Fond d'oeil clinique & Methode de reference, pratique courante & Dependance a l'expertise humaine & Depistage et suivi \\
+\hline
+Retinographie & Trace numerique, partage a distance & Qualite variable selon acquisition & Campagnes de depistage \\
+\hline
+OCT & Tres haute precision structurelle & Cout eleve, equipement specialise & Oedeme maculaire, cas complexes \\
+\hline
+Angiographie & Analyse vasculaire detaillee & Invasive, moins accessible & Exploration avancee \\
+\hline
+Tele-ophtalmologie & Couvre les zones eloignees & Delai d'interpretation possible & Reseaux de soins distribues \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Prediction du diabete par l'intelligence artificielle}
+Dans le contexte actuel, le depistage manuel de la retinopathie diabetique reste efficace
+mais il est limite par la charge de travail des specialistes, la variabilite de lecture,
+les delais de restitution et les inegalites d'acces aux soins.
+L'intelligence artificielle repond a cette problematique en fournissant une aide rapide
+et standardisee pour analyser les images du fond d'oeil, estimer un grade de severite,
+et prioriser les cas urgents.
+
+L'objectif n'est pas de remplacer l'ophtalmologue, mais de l'assister dans la decision,
+de reduire le retard diagnostique et d'ameliorer la qualite globale du depistage.
+
+\subsubsection*{1.4.7 Solution avec IA et concept de l'application}
+La solution proposee dans ce projet repose sur une application d'aide au depistage
+qui combine une interface clinique (centre/medecin), un backend de gestion des examens
+et un service IA d'analyse d'images retiniennes.
+
+Le concept de l'application est le suivant :
+\begin{enumerate}
+    \item acquisition de l'image du fond d'oeil par le centre ;
+    \item envoi securise de l'image vers le serveur d'analyse ;
+    \item prediction automatique du grade de retinopathie ;
+    \item generation d'une explication visuelle (Grad-CAM) ;
+    \item notification du medecin, avec priorisation des cas severes.
+\end{enumerate}
+
+Cette architecture permet de reduire les delais de depistage,
+de standardiser la pre-analyse et d'ameliorer la coordination entre les acteurs de soin.
+
+\section{Methodologie du projet (Scrum)}
+Pour cadrer le developpement de l'application, nous avons adopte une methode agile de type Scrum,
+adaptee aux projets iteratifs en intelligence artificielle et en developpement logiciel.
+
+Le travail a ete organise en sprints courts, avec des objectifs incrementaux :
+\begin{itemize}
+    \item preparation et exploration des donnees ;
+    \item experimentation et amelioration des modeles ;
+    \item integration backend/frontend/service IA ;
+    \item validation fonctionnelle et tests de bout en bout.
+\end{itemize}
+
+Scrum a apporte trois benefices principaux dans ce projet :
+\begin{itemize}
+    \item \textbf{adaptabilite} : ajustement rapide des priorites selon les resultats experimentaux ;
+    \item \textbf{visibilite} : suivi continu des taches et des livrables ;
+    \item \textbf{qualite} : integration progressive et verification reguliere des fonctionnalites.
+\end{itemize}
+
+\section{Partie statistique}
+\subsection{a) Dans le monde}
+Les indicateurs epidemiologiques internationaux confirment l'ampleur du probleme :
+\begin{itemize}
+    \item plus de 347 millions de personnes vivent avec le diabete dans le monde ;
+    \item la retinopathie diabetique concernerait plus de 93 millions de personnes ;
+    \item environ 40\% a 45\% des personnes diabetiques presentent un stade de retinopathie.
+\end{itemize}
+
+Ces chiffres montrent que le depistage de la RD n'est pas uniquement un enjeu clinique,
+mais aussi un enjeu de sante publique globale, en particulier dans les regions ou
+l'acces aux specialistes reste limite.
+\textit{Sources : WHO Fact Sheet Diabetes (2024), IDF Diabetes Atlas (2025).}
+
+\subsection{b) En Tunisie}
+En Tunisie, le diabete represente egalement un probleme majeur de sante publique,
+avec une prevalence estimee autour de 16\% chez les adultes (20--79 ans) selon la serie
+IDF/World Bank (2024). Cette progression s'accompagne d'un risque accru de complications
+chroniques, dont la retinopathie diabetique.
+
+Dans ce contexte, le depistage precoce reste un defi operationnel, notamment en raison :
+\begin{itemize}
+    \item de la concentration des specialistes dans les grands centres urbains ;
+    \item des delais de consultation en ophtalmologie ;
+    \item de l'augmentation continue du nombre de patients diabetiques.
+\end{itemize}
+
+L'integration d'une solution d'aide au depistage basee sur l'IA peut ainsi contribuer
+a reduire les delais d'orientation et a ameliorer l'acces au diagnostic sur le territoire.
+\textit{Source : World Bank Data -- Indicator SH.STA.DIAB.ZS (Tunisia, 2024).}
+
+\section*{References web utilisees}
+\addcontentsline{toc}{section}{References web utilisees}
+\begin{itemize}
+    \item World Health Organization (WHO). \textit{Diabetes -- Fact sheet}.\newline
+    \url{https://www.who.int/news-room/fact-sheets/detail/diabetes}
+    \item Centers for Disease Control and Prevention (CDC). \textit{Diabetes Basics}.\newline
+    \url{https://www.cdc.gov/diabetes/about/index.html}
+    \item International Diabetes Federation (IDF). \textit{IDF Diabetes Atlas}.\newline
+    \url{https://diabetesatlas.org/}
+    \item World Bank Data. \textit{Diabetes prevalence (\% of population ages 20 to 79) -- Tunisia}.\newline
+    \url{https://data.worldbank.org/indicator/SH.STA.DIAB.ZS?locations=TN}
+    \item NCBI Bookshelf (StatPearls). \textit{Diabetic Retinopathy}.\newline
+    \url{https://www.ncbi.nlm.nih.gov/books/NBK560805/}
+\end{itemize}
+
+\section{Conclusion}
+Ce chapitre a presente le contexte general du projet, en partant des bases medicales du diabete
+et de la retinopathie diabetique, puis en decrivant les methodes diagnostiques actuelles et leurs limites.
+L'analyse des contraintes terrain justifie l'interet d'une solution numerique intelligente.
+
+La suite du rapport s'orientera vers l'etat de l'art des approches IA en imagerie retinienne,
+les choix methodologiques retenus et la conception technique de la solution proposee.

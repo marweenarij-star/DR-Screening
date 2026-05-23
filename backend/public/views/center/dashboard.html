@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Centre - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-center">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/center/dashboard" class="sidebar-brand">
+                    <i class="fas fa-hospital"></i>
+                    <span>Admin Centre</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">Gestion</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/dashboard" class="nav-link active">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/doctors" class="nav-link">
+                            <i class="fas fa-stethoscope"></i>
+                            <span>Médecins</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="nav-section">Dépistage</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/new-exam" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Nouveau dépistage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/history" class="nav-link">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span>Historique</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/support" class="nav-link">
+                            <i class="fas fa-life-ring"></i>
+                            <span>Support & Assistance</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name" id="center-admin-name">Admin</div>
+                        <div class="user-role" id="center-name">Centre</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content dashboard-shell">
+            <div class="super-hero mb-6 dashboard-hero">
+                <div class="banner-identity">
+                    <span class="banner-icon" aria-hidden="true"><i class="fas fa-hospital-user"></i></span>
+                    <div class="banner-stack">
+                        <h2 class="super-hero-title banner-title">Bonjour, Admin Centre !</h2>
+            <p class="page-subtitle">Gestion des flux cliniques et suivi des examens.</p>
+                        <div class="banner-chips" aria-label="Statut plateforme">
+                            <span class="banner-chip"><i class="fas fa-layer-group"></i> Flux optimisé</span>
+                            <span class="banner-chip"><i class="fas fa-user-shield"></i> Coordination fiable</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-strip mb-6">
+                <div class="stat-pill"><i class="fas fa-users"></i><div><div class="stat-pill-label">Total patients</div><div class="stat-pill-value" id="stat-total-patients">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-stethoscope"></i><div><div class="stat-pill-label">Total médecins</div><div class="stat-pill-value" id="stat-total-doctors">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-hourglass"></i><div><div class="stat-pill-label">Examens en attente</div><div class="stat-pill-value" id="stat-pending-exams">0</div></div></div>
+                <div class="stat-pill"><i class="fas fa-check-circle"></i><div><div class="stat-pill-label">Total examens</div><div class="stat-pill-value" id="stat-total-exams">0</div></div></div>
+            </div>
+
+            <section class="card mb-6 pending-dossiers-panel" id="pending-dossiers-section">
+                <div class="card-header pending-dossiers-header">
+                    <div class="pending-dossiers-titleblock">
+                        <div class="pending-dossiers-icon"><i class="fas fa-folder-open"></i></div>
+                        <div>
+                            <h3 class="card-title">Dossiers en attente</h3>
+                            <p class="page-subtitle" style="margin-top: 0.25rem;">Dossiers créés par les médecins, en attente d'envoi au médecin référent.</p>
+                        </div>
+                    </div>
+                    <div class="pending-dossiers-actions">
+                        <a href="/center/new-exam" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle"></i> Nouvel examen</a>
+                    </div>
+                </div>
+                <div class="card-body pending-dossiers-body">
+                    <div class="pending-dossiers-toolbar">
+                        <select id="pending-doctor-filter" class="form-control pending-input pending-select" aria-label="Filtrer par médecin">
+                            <option value="">Tous les médecins</option>
+                        </select>
+                        <input id="pending-dossier-search" class="form-control pending-input pending-search" aria-label="Rechercher un dossier" placeholder="Rechercher un ID dossier, ex: OPH001_20260424_001">
+                        <button class="btn btn-outline btn-sm" id="pending-search-btn" aria-label="Lancer la recherche"><i class="fas fa-search"></i> Rechercher</button>
+                        <button class="btn btn-outline btn-sm" id="pending-reset-btn" aria-label="Réinitialiser les filtres"><i class="fas fa-rotate-left"></i> Réinitialiser</button>
+                    </div>
+
+                    <div class="pending-dossiers-summary">
+                        <div class="pending-summary-chip"><i class="fas fa-user-md"></i><span>Filtre médecin</span></div>
+                        <div class="pending-summary-chip"><i class="fas fa-id-card"></i><span>Recherche par ID dossier</span></div>
+                        <div class="pending-summary-chip"><i class="fas fa-play"></i><span>Action rapide: démarrer examen</span></div>
+                    </div>
+
+                    <div class="table-container pending-dossiers-tablewrap">
+                        <table class="table pending-dossiers-table">
+                            <thead>
+                                <tr>
+                                    <th>ID dossier</th>
+                                    <th>Patient</th>
+                                    <th>Médecin</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-dossiers-list">
+                                <tr>
+                                    <td colspan="5" class="loading"><div class="spinner"></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let selectedPendingDoctorId = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check auth
+            if (!Auth.isAuthenticated()) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const user = Auth.getUser();
+            if (user.role !== 'center_admin') {
+                window.location.href = '/login';
+                return;
+            }
+
+            const adminNameEl = document.getElementById('center-admin-name');
+            const centerNameEl = document.getElementById('center-name');
+            const welcomeEl = document.getElementById('center-welcome-name');
+
+            if (adminNameEl) adminNameEl.textContent = user.name || 'Admin';
+            if (centerNameEl) centerNameEl.textContent = 'Centre';
+            if (welcomeEl) welcomeEl.textContent = user.name || 'Admin';
+
+            await loadDashboardStats();
+            await loadPendingDossiers();
+
+            document.getElementById('pending-doctor-filter').addEventListener('change', (event) => {
+                selectedPendingDoctorId = String(event.target.value || '').trim();
+                loadPendingDossiers();
+            });
+
+            document.getElementById('pending-search-btn').addEventListener('click', () => loadPendingDossiers());
+            document.getElementById('pending-reset-btn').addEventListener('click', () => {
+                selectedPendingDoctorId = '';
+                document.getElementById('pending-doctor-filter').value = '';
+                document.getElementById('pending-dossier-search').value = '';
+                loadPendingDossiers();
+            });
+
+            // Refresh dashboard sections every 30 seconds
+            window.setInterval(loadPendingDossiers, 30000);
+        });
+
+        async function loadPendingDossiers() {
+            const listEl = document.getElementById('pending-dossiers-list');
+            const doctorSelect = document.getElementById('pending-doctor-filter');
+            const dossierSearch = String(document.getElementById('pending-dossier-search').value || '').trim();
+
+            if (!listEl || !doctorSelect) return;
+
+            listEl.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>';
+
+            try {
+                const params = new URLSearchParams();
+                if (selectedPendingDoctorId) params.set('doctor_id', selectedPendingDoctorId);
+                if (dossierSearch) params.set('dossier_id', dossierSearch);
+
+                const response = await API.get(`/center/patients/pending-dossiers${params.toString() ? `?${params.toString()}` : ''}`);
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Erreur de chargement des dossiers en attente');
+                }
+
+                const patients = response.data.patients || [];
+                const doctors = response.data.doctors || [];
+
+                const currentOptions = new Map(Array.from(doctorSelect.options).map((opt) => [opt.value, opt.textContent]));
+                doctorSelect.innerHTML = '<option value="">Tous les médecins</option>';
+                doctors.forEach((doctor) => {
+                    const option = document.createElement('option');
+                    option.value = doctor.id;
+                    option.textContent = `${doctor.name || '-'}${doctor.doctor_code ? ` (${doctor.doctor_code})` : ''}`;
+                    doctorSelect.appendChild(option);
+                });
+                if (selectedPendingDoctorId && doctors.some((doc) => String(doc.id) === selectedPendingDoctorId)) {
+                    doctorSelect.value = selectedPendingDoctorId;
+                } else if (!currentOptions.has(selectedPendingDoctorId)) {
+                    selectedPendingDoctorId = '';
+                }
+
+                if (!patients.length) {
+                    const message = dossierSearch
+                        ? 'Aucun dossier en attente trouvé pour cet ID. Vérifiez la saisie avec le médecin.'
+                        : 'Aucun dossier en attente pour le moment.';
+                    listEl.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="table-empty">
+                                <div class="empty-state">
+                                    <i class="fas fa-folder-open"></i>
+                                    <h3>Liste vide</h3>
+                                    <p>${escapeHtml(message)}</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+
+                    if (dossierSearch) {
+                        Toast.show('ID dossier introuvable ou non en attente. Demandez au patient de revoir le médecin.', 'warning');
+                    }
+                    return;
+                }
+
+                listEl.innerHTML = patients.map((patient) => `
+                    <tr>
+                        <td><strong>${escapeHtml(patient.medical_record_number || '-')}</strong></td>
+                        <td>${escapeHtml(patient.full_name || '-')}</td>
+                        <td>${escapeHtml(patient.doctor_name || '-')} ${patient.doctor_code ? `<span class="text-muted">(${escapeHtml(patient.doctor_code)})</span>` : ''}</td>
+                        <td><span class="badge badge-warning">En attente</span></td>
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-sm"
+                                onclick="startExam(${Number(patient.id)})"
+                            >
+                                <i class="fas fa-paper-plane"></i> Démarrer examen
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                listEl.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${escapeHtml(error.message || 'Erreur de chargement')}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function startExam(patientId) {
+            try {
+                const response = await API.post(`/center/patients/${patientId}/start-exam`, {});
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Impossible de démarrer l\'examen');
+                }
+
+                const data = response.data || {};
+                Toast.show('Statut mis à jour: examen en cours', 'success');
+                window.location.href = `/center/new-exam?patient_id=${encodeURIComponent(data.patient_id)}&doctor_id=${encodeURIComponent(data.doctor_id || '')}`;
+            } catch (error) {
+                Toast.show(error.message || 'Erreur lors du démarrage', 'danger');
+            }
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const response = await API.get('/center/dashboard');
+                if (!response || !response.success) {
+                    console.error('Dashboard response error', response);
+                    return;
+                }
+
+                const stats = response.data.stats;
+                document.getElementById('stat-total-patients').textContent = stats.patients_count || 0;
+                document.getElementById('stat-total-doctors').textContent = stats.doctors_count || 0;
+                document.getElementById('stat-pending-exams').textContent = stats.pending_exams || 0;
+                document.getElementById('stat-total-exams').textContent = stats.exams_count || 0;
+            } catch (error) {
+                console.error('Load stats error:', error);
+                // Show placeholder values
+                document.getElementById('stat-total-patients').textContent = 0;
+                document.getElementById('stat-total-doctors').textContent = 0;
+                document.getElementById('stat-pending-exams').textContent = 0;
+                document.getElementById('stat-total-exams').textContent = 0;
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+    <style>
+        .pending-dossiers-panel {
+            overflow: hidden;
+            border: 1px solid rgba(15, 110, 140, 0.10);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+            background: linear-gradient(180deg, #ffffff 0%, #fbfeff 100%);
+        }
+
+        .pending-dossiers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-bottom: 1rem;
+        }
+
+        .pending-dossiers-titleblock {
+            display: flex;
+            align-items: center;
+            gap: 0.95rem;
+        }
+
+        .pending-dossiers-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            color: #0f6e8c;
+            background: linear-gradient(135deg, rgba(15, 110, 140, 0.14), rgba(15, 110, 140, 0.06));
+            box-shadow: inset 0 0 0 1px rgba(15, 110, 140, 0.14);
+            flex-shrink: 0;
+        }
+
+        .pending-dossiers-body {
+            padding-top: 0;
+        }
+
+        .pending-dossiers-toolbar {
+            display: grid;
+            grid-template-columns: 1.2fr 1.6fr auto auto;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.9rem;
+        }
+
+        .pending-input {
+            height: 44px;
+            border-radius: 12px;
+            background: #f8fbfd;
+        }
+
+        .pending-summary-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 999px;
+            background: #eff8fb;
+            color: #0f6e8c;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(15, 110, 140, 0.10);
+        }
+
+        .pending-dossiers-summary {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .pending-dossiers-tablewrap {
+            border: 1px solid rgba(15, 110, 140, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .pending-dossiers-table thead th {
+            background: #f7fbfd;
+            color: #0f6e8c;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .pending-dossiers-table tbody tr:hover {
+            background: rgba(15, 110, 140, 0.03);
+        }
+
+        .pending-dossiers-table .badge-warning {
+            background: #e9f8ef;
+            color: #17633b;
+        }
+
+        @media (max-width: 1100px) {
+            .pending-dossiers-toolbar {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pending-dossiers-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .pending-dossiers-titleblock {
+                align-items: flex-start;
+            }
+        }
+    </style>
+</body>
+</html>

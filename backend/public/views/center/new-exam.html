@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouvel examen - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-center">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/center/dashboard" class="sidebar-brand">
+                    <i class="fas fa-hospital"></i>
+                    <span>Admin Centre</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">Gestion</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/dashboard" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/doctors" class="nav-link">
+                            <i class="fas fa-stethoscope"></i>
+                            <span>Médecins</span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="nav-section">Dépistage</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/center/new-exam" class="nav-link active">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Nouveau dépistage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/history" class="nav-link">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span>Historique</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/center/support" class="nav-link">
+                            <i class="fas fa-life-ring"></i>
+                            <span>Support & Assistance</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name" id="user-name">Administrateur</div>
+                        <div class="user-role">Centre</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+        
+         <!-- Main Content -->
+         <main class="main-content">
+
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Nouvel examen</h1>
+                    <p class="page-subtitle">Soumettre une image du fond d'œil au médecin pour analyse</p>
+                </div>
+            </div>
+
+            
+
+            <!-- Exam Form -->
+            <div class="card" style="width: 100%;">
+                <div class="card-header">
+                    <h3 class="card-title">Informations de l'examen</h3>
+                </div>
+                <div class="card-body">
+                    <form id="exam-form">
+                        <div class="form-group">
+                            <label class="form-label required" for="patient_id">Patient</label>
+                            <select id="patient_id" name="patient_id" class="form-control form-select" required>
+                                <option value="">Sélectionner un patient...</option>
+                            </select>
+                        </div>
+                            
+                        <div class="form-group">
+                            <label class="form-label required" for="doctor_id">Médecin référent</label>
+                            <select id="doctor_id" name="doctor_id" class="form-control form-select" required>
+                                <option value="">Sélectionner un médecin...</option>
+                            </select>
+                        </div>
+                            
+                        <div class="form-group">
+                            <label class="form-label required">Images du fond d'œil</label>
+                            <p class="text-muted" style="margin-bottom: 0.75rem;">
+                                Téléversez au moins une image : œil droit (OD), œil gauche (OG), ou les deux.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2" style="gap: 1rem; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Œil droit (OD)</label>
+                                <div class="file-upload" id="file-upload-od">
+                                    <input type="file" id="image_od" name="image_od" accept="image/*,.dcm" hidden>
+                                    <div class="file-upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div class="file-upload-text">
+                                            <strong>Cliquez pour sélectionner</strong> ou glissez-déposez
+                                            <br>
+                                            <small>PNG, JPG, DICOM (.dcm) jusqu'à 10MB</small>
+                                        </div>
+                                        <div class="file-preview" id="file-preview-od" style="display: none;">
+                                            <img id="preview-image-od" src="" alt="Aperçu OD">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Œil gauche (OG)</label>
+                                    <div class="file-upload" id="file-upload-og">
+                                        <input type="file" id="image_og" name="image_og" accept="image/*,.dcm" hidden>
+                                        <div class="file-upload-icon">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        </div>
+                                        <div class="file-upload-text">
+                                            <strong>Cliquez pour sélectionner</strong> ou glissez-déposez
+                                            <br>
+                                            <small>PNG, JPG, DICOM (.dcm) jusqu'à 10MB</small>
+                                        </div>
+                                        <div class="file-preview" id="file-preview-og" style="display: none;">
+                                            <img id="preview-image-og" src="" alt="Aperçu OG">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Options d'image</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="add_center_name" name="add_center_name" value="1">
+                                    <label for="add_center_name">Ajouter le nom du centre en bas de l'image</label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="notes">Notes</label>
+                                <textarea id="notes" name="notes" class="form-control" rows="3"
+                                          placeholder="Observations complémentaires..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="submit-btn">
+                                <i class="fas fa-paper-plane"></i>
+                                Envoyer au médecin
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Success Panel -->
+                <div class="card" id="success-panel" style="display: none;">
+                    <div class="card-header">
+                        <h3 class="card-title">Examen envoyé</h3>
+                    </div>
+                    <div class="card-body" style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 4rem; color: var(--success); margin-bottom: 1rem;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h2 style="margin-bottom: 1rem;">Examen transmis avec succès</h2>
+                        <p class="text-muted" style="margin-bottom: 2rem;">
+                            L'examen a bien été transmis au <strong id="sent-doctor-name">médecin</strong>.<br>
+                            Le patient <strong id="sent-patient-name">-</strong> sera notifié dès que l'analyse IA sera terminée.
+                        </p>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <strong>Patient :</strong> <span id="sent-patient-name">-</span><br>
+                                <strong>Yeux :</strong> <span id="sent-eye">OD & OG</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-4" onclick="resetForm()">
+                            <i class="fas fa-plus"></i>
+                            Nouvel examen
+                        </button>
+                    </div>
+                </div>
+                
+
+            </div>
+        </main>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay" style="display: none;">
+        <div style="text-align: center;">
+            <div class="spinner" style="width: 60px; height: 60px;"></div>
+            <p style="margin-top: 1rem; color: var(--gray-700);">Envoi en cours...</p>
+        </div>
+    </div>
+    
+    <script src="/js/app.js"></script>
+    <script src="/js/new-exam-autofill.js"></script>
+    <script>
+        let selectedPatientName = '';
+        let selectedDoctorName = '';
+        let centerName = '';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.checkRole('center_admin')) return;
+            
+            loadPatients();
+            loadDoctors();
+            loadCenterName();
+            setupFileUpload('file-upload-od', 'image_od', 'file-preview-od', 'preview-image-od');
+            setupFileUpload('file-upload-og', 'image_og', 'file-preview-og', 'preview-image-og');
+            
+            // Track selected names
+            document.getElementById('patient_id').addEventListener('change', (e) => {
+                selectedPatientName = e.target.options[e.target.selectedIndex].text;
+            });
+            document.getElementById('doctor_id').addEventListener('change', (e) => {
+                selectedDoctorName = e.target.options[e.target.selectedIndex].text;
+            });
+            
+            // Form submit
+            document.getElementById('exam-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const form = e.target;
+                const formData = new FormData(form);
+                
+                if (!formData.get('patient_id')) {
+                    Toast.show('Veuillez sélectionner un patient', 'warning');
+                    return;
+                }
+                if (!formData.get('doctor_id')) {
+                    Toast.show('Veuillez sélectionner un médecin', 'warning');
+                    return;
+                }
+                const imageOd = formData.get('image_od');
+                const imageOg = formData.get('image_og');
+                if ((!imageOd || !imageOd.size) && (!imageOg || !imageOg.size)) {
+                    Toast.show('Veuillez sélectionner au moins une image (OD ou OG)', 'warning');
+                    return;
+                }
+
+                const isDicomFile = (file) => file && (file.name.toLowerCase().endsWith('.dcm') || file.type === 'application/dicom');
+                
+                document.getElementById('loading-overlay').style.display = 'flex';
+                document.getElementById('submit-btn').disabled = true;
+                console.log('Exam submit: start');
+                // Safety fallback: ensure overlay is removed after timeout even if something hangs
+                const safetyTimer = setTimeout(() => {
+                    try {
+                        document.getElementById('loading-overlay').style.display = 'none';
+                        document.getElementById('submit-btn').disabled = false;
+                    } catch (e) {}
+                    Toast.show('Le serveur a mis trop de temps à répondre. Vérifiez la connexion.', 'danger');
+                    console.warn('Safety timer triggered: hid loading overlay');
+                }, 35000);
+                
+                try {
+                    const patientId = formData.get('patient_id');
+                    const doctorId = formData.get('doctor_id');
+                    const notes = formData.get('notes') || '';
+                    const addCenterNameFlag = formData.get('add_center_name') === '1';
+                    const hasOd = imageOd && imageOd.size;
+                    const hasOg = imageOg && imageOg.size;
+
+                    const eyesSubmitted = [];
+
+                    // Fast path: when both eyes are present, send one request so backend analyzes both in parallel.
+                    if (hasOd && hasOg) {
+                        let imageOdToSend = imageOd;
+                        let imageOgToSend = imageOg;
+
+                        if (addCenterNameFlag && centerName) {
+                            if (isDicomFile(imageOd) || isDicomFile(imageOg)) {
+                                Toast.show('Le nom du centre est ignoré pour les fichiers DICOM.', 'info');
+                            }
+                            [imageOdToSend, imageOgToSend] = await Promise.all([
+                                isDicomFile(imageOd) ? imageOd : processImageWithCenterName(imageOd, centerName),
+                                isDicomFile(imageOg) ? imageOg : processImageWithCenterName(imageOg, centerName)
+                            ]);
+                        }
+
+                        const fdBoth = new FormData();
+                        fdBoth.append('patient_id', patientId);
+                        fdBoth.append('doctor_id', doctorId);
+                        fdBoth.append('notes', notes);
+                        fdBoth.append('image_od', imageOdToSend);
+                        fdBoth.append('image_og', imageOgToSend);
+
+                        const responseBoth = await API.postForm('/exams/submit-both', fdBoth);
+                        if (responseBoth && responseBoth.success) {
+                            eyesSubmitted.push('OD', 'OG');
+                        }
+                    }
+
+                    // Send OD if present
+                    if (!hasOg && hasOd) {
+                        let imageToSend = imageOd;
+                        if (addCenterNameFlag && centerName && !isDicomFile(imageOd)) {
+                            imageToSend = await processImageWithCenterName(imageOd, centerName);
+                        } else if (addCenterNameFlag && centerName && isDicomFile(imageOd)) {
+                            Toast.show('Le nom du centre est ignoré pour les fichiers DICOM.', 'info');
+                        }
+                        const fdOd = new FormData();
+                        fdOd.append('patient_id', patientId);
+                        fdOd.append('doctor_id', doctorId);
+                        fdOd.append('notes', notes);
+                        fdOd.append('eye_type', 'OD');
+                        fdOd.append('image', imageToSend);
+                        const responseOd = await API.postForm('/exams/submit', fdOd);
+                        if (responseOd && responseOd.success) {
+                            eyesSubmitted.push('OD');
+                        }
+                    }
+
+                    // Send OG if present
+                    if (!hasOd && hasOg) {
+                        let imageToSend = imageOg;
+                        if (addCenterNameFlag && centerName && !isDicomFile(imageOg)) {
+                            imageToSend = await processImageWithCenterName(imageOg, centerName);
+                        } else if (addCenterNameFlag && centerName && isDicomFile(imageOg)) {
+                            Toast.show('Le nom du centre est ignoré pour les fichiers DICOM.', 'info');
+                        }
+                        const fdOg = new FormData();
+                        fdOg.append('patient_id', patientId);
+                        fdOg.append('doctor_id', doctorId);
+                        fdOg.append('notes', notes);
+                        fdOg.append('eye_type', 'OG');
+                        fdOg.append('image', imageToSend);
+                        const responseOg = await API.postForm('/exams/submit', fdOg);
+                        if (responseOg && responseOg.success) {
+                            eyesSubmitted.push('OG');
+                        }
+                    }
+
+                    if (eyesSubmitted.length > 0) {
+                        showSuccess(eyesSubmitted);
+                        Toast.show('Examen envoyé', 'success');
+                    } else {
+                        Toast.show('Erreur lors de l\'envoi de l\'examen', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Exam submit error:', error);
+                    Toast.show(error.message || 'Erreur lors de l\'envoi', 'danger');
+                } finally {
+                    clearTimeout(safetyTimer);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('submit-btn').disabled = false;
+                    console.log('Exam submit: finished');
+                }
+            });
+        });
+        
+        async function loadPatients() {
+            try {
+                const response = await API.get('/patients?per_page=1000');
+                if (response && response.success) {
+                    const select = document.getElementById('patient_id');
+                    response.data.patients.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.id;
+                        const name = patient.full_name || `${patient.first_name || ''} ${patient.last_name || ''}`;
+                        option.textContent = `${patient.medical_record_number} - ${name}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+        
+        async function loadDoctors() {
+            try {
+                const response = await API.get('/doctors');
+                if (response && response.success) {
+                    const select = document.getElementById('doctor_id');
+                    const doctors = response.data.doctors || response.data;
+                    doctors.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.id;
+                        option.textContent = `Dr. ${doctor.first_name} ${doctor.last_name}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+            }
+        }
+        
+        function setupFileUpload(containerId, inputId, previewContainerId, previewImageId) {
+            const uploadZone = document.getElementById(containerId);
+            const fileInput = document.getElementById(inputId);
+            const preview = document.getElementById(previewContainerId);
+            const previewImage = document.getElementById(previewImageId);
+            
+            if (!uploadZone || !fileInput || !preview || !previewImage) return;
+
+            uploadZone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) displayPreview(file);
+            });
+            
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragging');
+            });
+            
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragging');
+            });
+            
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragging');
+                const file = e.dataTransfer.files[0];
+                if (file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.dcm') || file.type === 'application/dicom')) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                    displayPreview(file);
+                }
+            });
+            
+            function displayPreview(file) {
+                const isDicom = file.name.toLowerCase().endsWith('.dcm') || file.type === 'application/dicom';
+                previewImage.removeAttribute('src');
+                preview.style.display = 'block';
+                if (isDicom) {
+                    // Show temporary loader while generating preview on server
+                    preview.innerHTML = `<div style="padding: 1rem; text-align: center; color: var(--gray-700);">
+                        <div class="spinner" style="width:36px;height:36px;margin:auto;"></div>
+                        <div style="margin-top:.5rem;"><small>Génération de l'aperçu DICOM...</small></div>
+                    </div>`;
+
+                    // Upload file to preview API
+                    uploadDicomPreview(file).then(result => {
+                        if (result && result.success && result.preview_data) {
+                            preview.innerHTML = '';
+                            previewImage.src = result.preview_data;
+                            previewImage.alt = file.name;
+                            preview.style.display = 'block';
+                        } else {
+                            preview.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--gray-700);"><i class="fas fa-file-medical" style="font-size: 2rem; margin-bottom: .5rem;"></i><div><strong>Fichier DICOM sélectionné</strong></div><small>' + file.name + '</small></div>';
+                        }
+                    }).catch(() => {
+                        preview.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--gray-700);"><i class="fas fa-file-medical" style="font-size: 2rem; margin-bottom: .5rem;"></i><div><strong>Fichier DICOM sélectionné</strong></div><small>' + file.name + '</small></div>';
+                    });
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewImage.alt = file.name;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async function uploadDicomPreview(file) {
+                try {
+                    const fd = new FormData();
+                    fd.append('file', file, file.name);
+                    const token = Auth.getToken();
+                    const res = await fetch('/api/exams/preview', {
+                        method: 'POST',
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                        body: fd
+                    });
+                    const j = await res.json();
+                    return j;
+                } catch (err) {
+                    console.error('Preview upload failed', err);
+                    return null;
+                }
+            }
+        }
+        
+        async function processImageWithCenterName(imageFile, centerName) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const img = new Image();
+                    img.onload = async () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height + 60; // Add space at bottom for text
+                        
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Draw the original image
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Draw black background at the bottom
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(0, img.height, canvas.width, 60);
+                        
+                        // Draw center name at the bottom
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.font = 'bold 18px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(centerName, canvas.width / 2, img.height + 38);
+                        
+                        // Convert canvas to blob
+                        canvas.toBlob((blob) => {
+                            const processedFile = new File([blob], imageFile.name, { type: 'image/jpeg' });
+                            resolve(processedFile);
+                        }, 'image/jpeg', 0.95);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(imageFile);
+            });
+        }
+        
+        function showSuccess(eyesSubmitted) {
+            const infoPanel = document.getElementById('info-panel');
+            if (infoPanel) infoPanel.style.display = 'none';
+            const successPanel = document.getElementById('success-panel');
+            if (successPanel) successPanel.style.display = 'block';
+            const sentDoctor = document.getElementById('sent-doctor-name');
+            if (sentDoctor) sentDoctor.textContent = selectedDoctorName;
+            const sentPatient = document.getElementById('sent-patient-name');
+            if (sentPatient) sentPatient.textContent = selectedPatientName;
+            const sentEye = document.getElementById('sent-eye');
+            if (sentEye) {
+                const eyeDisplay = eyesSubmitted.length === 2 ? 'OD & OG' : eyesSubmitted[0];
+                sentEye.textContent = eyeDisplay;
+            }
+        }
+        
+        async function loadCenterName() {
+            try {
+                const response = await API.get('/center/dashboard');
+                if (response && response.success && response.data.center) {
+                    centerName = response.data.center.name || '';
+                }
+            } catch (error) {
+                console.error('Error loading center name:', error);
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('exam-form').reset();
+            const previews = ['file-preview-od', 'file-preview-og'];
+            previews.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            document.getElementById('success-panel').style.display = 'none';
+            document.getElementById('info-panel').style.display = 'block';
+            selectedPatientName = '';
+            selectedDoctorName = '';
+        }
+    </script>
+</body>
+</html>

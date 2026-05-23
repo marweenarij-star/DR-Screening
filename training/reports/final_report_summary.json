@@ -1,0 +1,18 @@
+{
+  "n_val_samples": 694,
+  "roc_plot": "C:\\Users\\DELL\\diabetic-retinopathy\\training\\reports\\roc_final.png",
+  "training_curves": "C:\\Users\\DELL\\diabetic-retinopathy\\training\\reports\\training_curves.png",
+  "best_thresholds": {
+    "biases": [
+      -0.95,
+      -0.75,
+      0.050000000000000044,
+      -0.29999999999999993,
+      -0.7
+    ],
+    "macro_f1": 0.7212753452015616,
+    "accuracy": 0.8328530259365994
+  },
+  "brightness_before_count": 2000,
+  "brightness_after_count": 2000
+}

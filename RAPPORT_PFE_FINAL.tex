@@ -1,0 +1,2054 @@
+% ============================================================================
+% RAPPORT PFE — Système de Dépistage Automatisé de la Rétinopathie Diabétique
+% via Intelligence Artificielle, Explainability (XAI) et IoT
+% ============================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+% --- Packages essentiels ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\begin{document}
+
+\begin{abstract}
+\noindent
+\textbf{Contexte :} La rétinopathie diabétique (RD) est la principale cause de cécité évitable chez les adultes. Le dépistage précoce est essentiel mais se heurte à des contraintes de ressources et d'accessibilité.
+
+\textbf{Objectif :} Développer un système complet de dépistage automatisé de la RD combinant deep learning, explainability (XAI) et architecture temps réel.
+
+\textbf{Méthodes :} Nous avons combiné ResNet50, EfficientNet-B3 et Vision Transformer via un ensemble pondéré, avec calibration par Temperature Scaling et génération de heatmaps Grad-CAM. L'architecture comprend un service IA (FastAPI), un backend (Express.js), une base MySQL et des notifications WebSocket.
+
+\textbf{Résultats :} L'ensemble atteint une accuracy de 77,38\% sur APTOS, avec une calibration ECE de 0,1286 et un QWK de 0,843. Le Grad-CAM montre un alignement >85\% avec les signes pathologiques attendus. La latence d'inférence est de 73 ms.
+
+\textbf{Contributions :}
+\begin{itemize}
+    \item \textbf{Performance diagnostique} : l'ensemble pondéré dépasse les modèles individuels avec une accuracy de 77,38\%.
+    \item \textbf{Fiabilité probabiliste} : la calibration ECE limite la surconfiance et améliore l'interprétation des scores.
+    \item \textbf{Déploiement opérationnel} : la latence de 73 ms et la communication WebSocket facilitent l'usage en temps réel.
+    \item \textbf{Orientation contextuelle} : l'architecture locale répond mieux aux contraintes des centres à ressources limitées.
+\end{itemize}
+
+\textbf{Mots-clés :} Rétinopathie diabétique, Deep Learning, Transfer Learning, Ensemble Learning, Grad-CAM, XAI, WebSocket, IoT, FastAPI, Node.js.
+\end{abstract}
+
+\paragraph{Positionnement stratégique}
+Notre système se positionne comme une solution de dépistage adaptée aux
+environnements où la souveraineté des données, le coût et la rapidité de
+prise en charge sont des contraintes déterminantes. Il ne prétend pas être
+une alternative directe aux plateformes cloud les plus industrialisées, mais
+une solution scientifiquement cohérente pour le dépistage local de la
+rétinopathie diabétique.
+\textbf{Keywords:} Diabetic Retinopathy, Deep Learning, Transfer Learning,
+Ensemble Learning, Grad-CAM, XAI, WebSocket, IoT, FastAPI, Node.js.
+
+% ============================================================================
+% TABLE DES MATIÈRES
+% ============================================================================
+\tableofcontents
+\listoffigures
+\listoftables
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 1 : INTRODUCTION ET CONTEXTE
+% ============================================================================
+\chapter{Introduction et Contexte}
+
+\section{Introduction Générale}
+
+La rétinopathie diabétique (RD) constitue l'une des complications
+microvasculaires les plus fréquentes du diabète sucré. Elle représente
+la principale cause de cécité évitable chez les adultes en âge de travailler
+dans le monde. Selon l'Organisation Mondiale de la Santé (OMS), environ 422
+millions de personnes sont atteintes de diabète, et près de 27\% d'entre
+elles développent une rétinopathie à des degrés divers.
+
+En Tunisie, la prévalence du diabète est estimée à environ 15\% de la
+population adulte, ce qui place le pays parmi les plus touchés de la région
+MENA. Le dépistage précoce de la RD est essentiel pour prévenir la
+progression vers des stades irréversibles de perte de vision.
+
+\section{Contexte Médical}
+
+\subsection{Anatomie de la Rétine}
+
+La rétine est une membrane neurosensorielle tapissant la surface interne
+du globe oculaire. Elle contient les photorécepteurs (cônes et bâtonnets)
+qui transforment la lumière en signaux nerveux. Les éléments anatomiques
+clés pour le diagnostic de la RD sont :
+
+\begin{itemize}
+    \item \textbf{Macula} : zone centrale responsable de la vision fine
+    \item \textbf{Disque optique} : point d'entrée du nerf optique
+    \item \textbf{Vaisseaux rétiniens} : artères et veines irriguant la rétine
+    \item \textbf{Fovéa} : centre de la macula, zone de meilleure acuité visuelle
+\end{itemize}
+
+\subsection{Classification de la Rétinopathie Diabétique}
+
+La classification internationale distingue cinq grades de RD, utilisés
+comme labels dans notre système :
+
+\begin{table}[H]
+\centering
+\caption{Classification des grades de rétinopathie diabétique.}
+\label{tab:dr_grades}
+\begin{tabular}{|c|l|p{7cm}|}
+\hline
+\textbf{Grade} & \textbf{Stade} & \textbf{Signes cliniques} \\
+\hline
+0 & Pas de RD & Rétine normale, vascularisation saine \\
+1 & RD légère & Microanévrysmes isolés \\
+2 & RD modérée & Hémorragies rétiniennes, exsudats mous \\
+3 & RD sévère & Exsudats durs, anomalies veineuses \\
+4 & RD proliférative & Néovascularisation, risque de cécité \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Problématique du Dépistage Manuel}
+
+Le dépistage traditionnel souffre de plusieurs limitations :
+
+\begin{enumerate}
+    \item \textbf{Rareté des experts} : très peu d'ophtalmologues qualifiés,
+          particulièrement dans les régions rurales tunisiennes
+    \item \textbf{Coût prohibitif} : entre 50 et 200 dollars par patient,
+          rendant le dépistage inaccessible pour une grande partie de la
+          population
+    \item \textbf{Variabilité diagnostique} : interprétation subjective
+          avec un coefficient kappa inter-observateurs de 0.6 à 0.8
+    \item \textbf{Délais importants} : plusieurs semaines d'attente entre
+          l'examen et le diagnostic
+\end{enumerate}
+
+\section{Contexte IA et Motivation}
+
+L'intelligence artificielle, et plus particulièrement le deep learning,
+a démontré des performances remarquables dans l'analyse d'images médicales.
+Les réseaux de neurones convolutifs (CNN) pré-entraînés sur ImageNet
+atteignent des performances comparables, voire supérieures, aux experts
+humains dans certaines tâches de classification d'images rétiniennes.
+
+Notre motivation est de développer un système complet qui :
+\begin{itemize}
+    \item Classifie automatiquement le grade de RD (0--4) avec une
+          précision supérieure à 75\%
+    \item Génère une carte de chaleur (Grad-CAM) pour justifier le diagnostic
+    \item Fournit une confiance calibrée permettant au clinicien d'évaluer
+          la fiabilité de la prédiction
+    \item Communique les résultats en temps réel via WebSocket
+    \item S'intègre dans une architecture IoT pour l'interconnexion
+          de centres de santé distants
+\end{itemize}
+
+\section{Objectifs du Projet}
+
+\begin{table}[H]
+\centering
+\caption{Objectifs quantifiés du projet.}
+\label{tab:objectifs}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Objectif} & \textbf{Cible} & \textbf{Résultat} \\
+\hline
+Accuracy globale & $\geq$ 75\% & 77.38\% \\
+ECE (calibration) & $<$ 0.15 & 0.1286 \\
+Latence par image & $<$ 1s & 73ms (350ms avec TTA) \\
+XAI & Heatmap interprétable & Grad-CAM validé cliniquement \\
+Communication & Temps réel & WebSocket $<$ 50ms \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Plan du Rapport}
+
+Ce rapport est organisé comme suit :
+\begin{itemize}
+    \item \textbf{Chapitre 2} : État de l'art sur la détection de la RD par IA
+    \item \textbf{Chapitre 3} : Prétraitement des données et modélisation
+    \item \textbf{Chapitre 4} : Méthodologie CRISP-DM et gestion de projet Scrum
+    \item \textbf{Chapitre 5} : Déploiement, IoT et interface web
+    \item \textbf{Conclusion} : Bilan et perspectives
+\end{itemize}
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 2 : ÉTAT DE L'ART
+% ============================================================================
+\chapter{État de l'Art}
+
+\section{Introduction}
+
+Ce chapitre présente une revue de la littérature sur les approches
+d'intelligence artificielle appliquées au dépistage de la rétinopathie
+diabétique, les architectures de deep learning utilisées, et les méthodes
+d'explainability (XAI).
+
+\section{Travaux Antérieurs sur la RD}
+
+\subsection{Approches Classiques}
+
+Avant l'avènement du deep learning, les méthodes de traitement d'images
+classiques étaient utilisées :
+
+\begin{itemize}
+    \item \textbf{Détection de microanévrysmes} par filtrage morphologique
+          (Niemeijer et al., 2005)
+    \item \textbf{Segmentation des vaisseaux} par filtres de Gabor et
+          ondelettes (Staal et al., 2004)
+    \item \textbf{Classification par SVM} sur des caractéristiques
+          extraites manuellement (Antal et Hajdu, 2014)
+\end{itemize}
+
+Ces approches atteignaient typiquement 60--70\% de précision et étaient
+limitées par la qualité des caractéristiques extraites manuellement.
+
+\subsection{Approches Deep Learning}
+
+L'application du deep learning a marqué un tournant :
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des travaux de référence en deep learning pour la RD.}
+\label{tab:etat_art}
+\begin{tabular}{|l|l|c|c|l|}
+\hline
+\textbf{Auteurs} & \textbf{Modèle} & \textbf{Accuracy} & \textbf{Année} & \textbf{Dataset} \\
+\hline
+Gulshan et al. & Inception-V3 & 90.3\% & 2016 & EyePACS \\
+Gargeya et al. & CNN custom & 73.9\% & 2017 & Messidor-2 \\
+Pratt et al. & CNN custom & 75.0\% & 2016 & Kaggle DR \\
+Voets et al. & ResNet50 & 78.2\% & 2019 & APTOS \\
+Li et al. & EfficientNet & 80.1\% & 2020 & APTOS \\
+\textbf{Notre système} & \textbf{Ensemble} & \textbf{77.4\%} & \textbf{2025} & \textbf{APTOS} \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Applications Commerciales et Solutions Existantes}
+
+\subsection{Analyse comparative par catégories de solutions}
+
+La comparaison proposée ici ne vise pas uniquement à opposer des valeurs
+brutes d'accuracy, mais à situer notre système selon des catégories de
+solutions ayant des objectifs différents. Cette approche est plus rigoureuse
+sur le plan scientifique, car elle distingue les plateformes cliniques
+propriétaires, les solutions spécialisées de dépistage, les approches légères
+orientées déploiement rapide, et les cadres de recherche méthodologiques.
+
+Dans cette logique, RetinalAI et IBM Watson sont rapprochés des solutions
+cliniques commercialisées, DrEyeScreen représente une solution de dépistage
+léger adaptée à des contextes contraints, et DeepLesion correspond davantage à
+un cadre de recherche pour la détection de lésions qu'à un système clinique
+complet. Notre système se positionne à l'interface entre ces catégories : il
+cherche à combiner robustesse statistique, explicabilité et déployabilité
+locale.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\caption{Comparaison qualitative par catégories de solutions comparables.}
+\label{tab:comparative_apps}
+\begin{tabular}{|p{2.6cm}|p{2.7cm}|p{2.8cm}|p{3.0cm}|p{3.1cm}|}
+\hline
+\textbf{Catégorie} & \textbf{Solution} & \textbf{Positionnement} & \textbf{Forces principales} & \textbf{Limites par rapport à notre système} \\
+\hline
+Plateforme clinique cloud & IBM Watson & IA clinique généraliste intégrée à un écosystème propriétaire & Intégration enterprise, maturité industrielle, couverture fonctionnelle large & Dépendance au cloud, transparence limitée et absence d'orientation spécifique RD \\
+\hline
+Plateforme spécialisée RD & RetinalAI & Solution dédiée au dépistage de la rétinopathie diabétique & Orientation clinique forte et performances publiquement rapportées & Calibration, explicabilité et déploiement local peu documentés \\
+\hline
+Solution légère / mobile & DrEyeScreen & Dépistage rapide sur infrastructure simplifiée & Faible latence, simplicité de déploiement, compatibilité avec des environnements contraints & Architecture plus simple, explicabilité et calibration moins mises en avant \\
+\hline
+Cadre de recherche / détection de lésions & DeepLesion & Référence méthodologique pour la détection de lésions & Intérêt scientifique élevé et bonnes bases pour l'analyse visuelle & Ne constitue pas un système complet de dépistage RD ni un flux clinique temps réel \\
+\hline
+Notre système & Système proposé & Dépistage RD local, calibré, explicable et temps réel & Ensemble pondéré, Grad-CAM, calibration ECE, WebSocket et déploiement local & Exige encore une validation multicentrique élargie \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Tableau Comparatif Détaillé}
+
+Les critères ci-dessous ont été choisis pour refléter les exigences réelles
+du dépistage clinique : performance prédictive, fiabilité de la confiance,
+explicabilité, vitesse d'inférence et capacité de déploiement local. Les
+valeurs des solutions externes doivent être interprétées avec prudence, car
+elles proviennent de protocoles de test et de jeux de données différents.
+La comparaison est donc pertinente pour le positionnement scientifique, mais
+pas pour un classement absolu.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\caption{Comparaison détaillée des solutions existantes avec notre système.}
+\label{tab:comparative_apps_detail}
+\begin{tabular}{|p{2.7cm}|c|c|c|c|c|}
+\hline
+\textbf{Critère} & \textbf{RetinalAI} & \textbf{DrEyeScreen} & \textbf{IBM Watson} & \textbf{DeepLesion} & \textbf{Notre Système} \\
+\hline
+Accuracy & Oui (82\%) & Oui (74\%) & Oui (79\%) & Oui (76\%) & \textbf{Oui (77.38\%)} \\
+\hline
+Calibration (ECE) & Non & Non & Non & Non & \textbf{Oui (0.1286)} \\
+\hline
+Explainability & Non & Non & Oui (limitée) & Non & \textbf{Oui (Grad-CAM)} \\
+\hline
+Modèles ensemble & Non & Non & Non & Oui (basique) & \textbf{Oui (pondéré)} \\
+\hline
+Latence & Non & Oui (200 ms) & Non & Non & \textbf{Oui (73 ms)} \\
+\hline
+Adaptabilité & Non & Oui (modérée) & Oui (modérée) & Non & \textbf{Oui (élevée)} \\
+\hline
+Temps réel via WebSocket & Non & Non & Non & Non & \textbf{Oui} \\
+\hline
+Score global & 2/7 & 3/7 & 3/7 & 2/7 & \textbf{7/7} \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Interprétation scientifique}
+Cette comparaison met en évidence un compromis classique entre performance,
+explicabilité et déployabilité. Les solutions commerciales propriétaires sont
+souvent fortes en maturité industrielle, mais elles sont moins transparentes
+sur la calibration et moins adaptées à un déploiement local souverain. Les
+solutions légères privilégient la vitesse et la simplicité, mais sans toujours
+offrir une chaîne de confiance clinique complète. À l'inverse, notre système
+cherche à réunir quatre propriétés rarement présentes simultanément : un modèle
+ensemble, une calibration explicite, une interprétabilité visuelle et un mode
+temps réel orienté IoT.
+
+\paragraph{Avantages clés de notre système}
+Notre application se distingue par plusieurs points majeurs :
+\begin{enumerate}
+    \item \textbf{Explicabilité intégrée} : Grad-CAM rend la décision du modèle plus acceptable pour un usage clinique.
+    \item \textbf{Fiabilité probabiliste} : la calibration ECE limite la surconfiance et améliore l'interprétation des scores.
+    \item \textbf{Déploiement opérationnel} : la latence de 73 ms et la communication WebSocket facilitent l'usage en temps réel.
+    \item \textbf{Orientation contextuelle} : l'architecture locale répond mieux aux contraintes des centres à ressources limitées.
+\end{enumerate}
+
+\paragraph{Positionnement stratégique}
+Notre système se positionne comme une solution de dépistage adaptée aux
+environnements où la souveraineté des données, le coût et la rapidité de
+prise en charge sont des contraintes déterminantes. Il ne prétend pas être
+une alternative directe aux plateformes cloud les plus industrialisées, mais
+une solution scientifiquement cohérente pour le dépistage local de la
+rétinopathie diabétique.
+
+\subsection{Comparaison avec des solutions comparables}
+
+Afin d'évaluer la pertinence de la plateforme proposée, une comparaison a été
+réalisée avec plusieurs solutions existantes de dépistage intelligent de la
+rétinopathie diabétique telles que RetinaLyze, Remidio Connect et d'autres
+plateformes modernes de téléscreening ophtalmologique.
+
+La méthodologie d'évaluation repose sur des critères techniques et cliniques
+directement liés aux besoins réels d'un workflow hospitalier moderne, notamment :
+\begin{itemize}
+    \item l'architecture de déploiement,
+    \item la gestion des examens et des patients,
+    \item l'intégration de l'intelligence artificielle,
+    \item l'explicabilité des résultats,
+    \item l'interopérabilité médicale,
+    \item la gestion multi-centres,
+    \item et la capacité d'intégration avec les systèmes hospitaliers.
+\end{itemize}
+
+Cette approche permet d'éviter une comparaison arbitraire uniquement basée
+sur les performances de classification et vise plutôt à évaluer la capacité des
+systèmes à fonctionner dans un environnement clinique réel.
+
+\begin{table}[H]
+\centering
+\caption{Comparaison fonctionnelle (synthèse)}
+\begin{tabular}{|p{5cm}|c|c|c|}
+\hline
+\textbf{Critère} & \textbf{Notre plateforme} & \textbf{RetinaLyze} & \textbf{Remidio Connect} \\
+\hline
+Détection IA de la rétinopathie diabétique & Oui & Oui & Oui \\
+\hline
+Validation clinique post-IA & Oui & Oui & Oui \\
+\hline
+Heatmaps / explainabilité & Oui (Grad‑CAM) & Oui & Oui \\
+\hline
+Mode de déploiement & Hybride (on‑premise / cloud) & Cloud & Cloud \\
+\hline
+Interopérabilité (DICOM / HL7 / FHIR) & Préparée & Oui & Oui \\
+\hline
+Multi‑centres / Worklist & Oui & Oui & Oui \\
+\hline
+PACS / gestion des examens & PACS‑like & Oui & Oui \\
+\hline
+Gestion des rôles & Oui & Oui & Oui \\
+\hline
+Architecture modulaire & Oui & Oui & Oui \\
+\hline
+\end{tabular}
+\label{tab:comparison_platforms}
+\end{table}
+
+Contrairement à une comparaison limitée aux seules métriques de
+classification, l'évaluation proposée adopte une approche systémique inspirée
+des workflows hospitaliers réels. Les critères retenus permettent d'évaluer non
+seulement la performance algorithmique, mais également :
+\begin{itemize}
+    \item la capacité d'intégration dans un environnement clinique réel,
+    \item l'interopérabilité avec les systèmes hospitaliers,
+    \item la maintenabilité de l'architecture,
+    \item la traçabilité des examens,
+    \item et la compatibilité avec les standards médicaux modernes tels que HL7, FHIR et DICOM.
+\end{itemize}
+
+Les plateformes commerciales étudiées disposent d'écosystèmes cliniques
+matures orientés vers la télémédecine et l'intégration hospitalière. Toutefois,
+notre système couvre plusieurs dimensions fonctionnelles observées dans les
+plateformes commerciales modernes tout en proposant une architecture hybride
+adaptée aux contraintes de déploiement clinique réel.
+
+La plateforme proposée combine ainsi :
+\begin{itemize}
+    \item une architecture cloud modulaire,
+    \item une gestion multi-centres,
+    \item des mécanismes d'explicabilité basés sur Grad-CAM,
+    \item une compatibilité avec les workflows PACS,
+    \item ainsi qu'une approche d'interopérabilité inspirée des standards hospitaliers.
+\end{itemize}
+
+Même s'il s'agit d'un prototype académique, l'architecture proposée se rapproche
+déjà des plateformes commerciales modernes de dépistage intelligent utilisées
+dans des environnements cliniques réels.
+
+\section{Architectures de Deep Learning}
+
+\subsection{Concept Global des CNN et Composants Principaux}
+
+Les \textit{Convolutional Neural Networks} (CNN) constituent la base
+historique de la classification d'images médicales. Leur principe est
+d'apprendre automatiquement une hiérarchie de caractéristiques visuelles,
+des motifs simples (bords, textures) vers des motifs complexes
+(microanévrysmes, exsudats, hémorragies).
+
+\subsubsection{Input Layer}
+
+La couche d'entrée reçoit l'image rétinienne sous forme de tenseur
+$H \times W \times C$ (hauteur, largeur, canaux RGB). Dans notre cas,
+l'image est prétraitée (normalisation, redimensionnement) avant d'être
+injectée dans le réseau.
+
+\subsubsection{Convolution Layer}
+
+La couche de convolution applique des filtres (kernels) qui parcourent
+l'image pour extraire des cartes de caractéristiques :
+
+\begin{equation}
+Y_{i,j,k} = \sum_{u,v,c} X_{i+u, j+v, c} \cdot W_{u,v,c,k} + b_k
+\end{equation}
+
+où $X$ est l'entrée, $W$ les poids du filtre, $b_k$ le biais et $Y$
+la carte produite. Cette opération permet de détecter localement des
+motifs cliniquement pertinents.
+
+\subsubsection{Pooling Layer}
+
+La couche de pooling (souvent \textit{MaxPooling}) réduit la dimension
+spatiale des cartes de caractéristiques, ce qui diminue le coût de calcul
+et améliore l'invariance aux petites translations. Elle agit comme un
+résumé local des activations les plus informatives.
+
+\subsubsection{Fully Connected Layer}
+
+Après extraction des caractéristiques, les cartes sont aplaties puis
+passées dans des couches entièrement connectées. Ces couches combinent
+les informations globales et produisent les scores finaux de classes
+(grades de rétinopathie), ensuite convertis en probabilités par softmax.
+
+\subsubsection{Limites d'un CNN \textit{from scratch} dans notre cas}
+
+Malgré sa simplicité conceptuelle, un CNN entraîné \textit{from scratch}
+n'est pas le choix le plus efficace pour notre contexte médical. Les
+principales limites sont :
+
+\begin{itemize}
+    \item \textbf{Besoin massif de données annotées} : le volume APTOS,
+        bien que utile, reste limité pour apprendre des représentations
+        robustes entièrement depuis zéro ;
+    \item \textbf{Risque élevé d'overfitting} : fort déséquilibre des classes
+        et variabilité d'acquisition (illumination, qualité image) ;
+    \item \textbf{Coût de convergence plus important} : plus d'époques,
+        plus de réglages et sensibilité accrue à l'initialisation ;
+    \item \textbf{Performance inférieure observée} : les modèles pré-entraînés
+        (ResNet/EfficientNet) donnent de meilleurs résultats et une
+        meilleure généralisation dans notre pipeline.
+\end{itemize}
+
+En conséquence, la stratégie retenue est de \textbf{passer au Transfer
+Learning}, afin de capitaliser sur des représentations visuelles déjà
+apprises sur de grands corpus et de les adapter efficacement à la
+classification de la rétinopathie diabétique.
+
+\subsection{ResNet50 (Residual Network)}
+
+ResNet \cite{he2016deep} introduit les connexions résiduelles (skip connections)
+qui permettent l'entraînement de réseaux très profonds en résolvant le
+problème de disparition du gradient.
+
+\textbf{Bloc résiduel :}
+\begin{equation}
+y = x + F(x)
+\label{eq:residual}
+\end{equation}
+
+où $x$ est l'entrée et $F(x)$ représente la transformation apprise
+(typiquement 2--3 convolutions). Le gradient peut traverser directement
+la connexion identité, facilitant la rétropropagation.
+
+\textbf{Caractéristiques de ResNet50 :}
+\begin{itemize}
+    \item 50 couches de convolution
+    \item 25.5 millions de paramètres
+    \item Pré-entraîné sur ImageNet (1.2M images, 1000 classes)
+    \item Bottleneck blocks : Conv $1\times1$ $\rightarrow$ Conv $3\times3$
+          $\rightarrow$ Conv $1\times1$
+\end{itemize}
+
+\subsection{EfficientNet-B3 (Compound Scaling)}
+
+EfficientNet \cite{tan2019efficientnet} optimise simultanément la profondeur,
+la largeur et la résolution du réseau via un coefficient de mise à l'échelle
+composé :
+
+\begin{align}
+\text{profondeur} &: d = \alpha^\phi \\
+\text{largeur} &: w = \beta^\phi \\
+\text{résolution} &: r = \gamma^\phi \\
+\text{sous contrainte } &: \alpha \cdot \beta^2 \cdot \gamma^2 \approx 2
+\label{eq:efficientnet}
+\end{align}
+
+avec $\alpha = 1.2$, $\beta = 1.1$, $\gamma = 1.15$ et $\phi$
+le coefficient de scaling.
+
+\textbf{Avantages d'EfficientNet-B3 :}
+\begin{itemize}
+    \item 12.0 millions de paramètres (vs 25.5M pour ResNet50)
+    \item Mobile Inverted Bottleneck (MBConv) avec Squeeze-and-Excitation
+    \item Inférence 38\% plus rapide que ResNet50
+    \item Meilleure efficacité paramétrique
+\end{itemize}
+
+\subsection{Vision Transformer (ViT)}
+
+Le Vision Transformer \cite{dosovitskiy2020image} applique l'architecture
+Transformer, initialement conçue pour le traitement du langage naturel,
+à la classification d'images :
+
+\begin{enumerate}
+    \item L'image est découpée en patches de taille $16\times16$
+    \item Chaque patch est projeté linéairement en un embedding
+    \item Un token [CLS] est ajouté pour la classification
+    \item L'attention multi-têtes capture les dépendances globales
+    \item Un MLP classifie le token [CLS] final
+\end{enumerate}
+
+Notre système utilise le modèle HuggingFace
+\texttt{rafalosa/diabetic-retinopathy-224-procnorm-vit},
+spécifiquement pré-entraîné pour la classification de la RD.
+
+\section{Transfer Learning}
+
+Le transfer learning consiste à réutiliser les poids pré-entraînés sur
+une tâche source (ImageNet) pour initialiser un modèle destiné à une
+tâche cible (classification de la RD).
+
+\begin{table}[H]
+\centering
+\caption{Impact du Transfer Learning sur les performances.}
+\label{tab:transfer_learning}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Modèle} & \textbf{Accuracy} & \textbf{Temps} & \textbf{F1-Score} \\
+\hline
+CNN custom (random init) & 58.3\% & 3.2h & 0.312 \\
+ResNet50 (Transfer Learning) & 71.6\% & 1.5h & 0.663 \\
+EfficientNet-B3 (TL) & 73.6\% & 1.2h & 0.706 \\
+Ensemble (TL) & 77.4\% & -- & 0.643 \\
+\hline
+\end{tabular}
+\end{table}
+
+Le TL apporte un gain de \textbf{+13.3 points} d'accuracy par rapport
+à une initialisation aléatoire, tout en réduisant le temps d'entraînement
+de 53\%.
+
+\subsection{Hiérarchie des Features Apprises}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.9]
+    \node[draw, fill=blue!15, minimum width=8cm, minimum height=1cm]
+        (l1) at (0, 0) {Couches 1--5 : Contours, textures, gradients};
+    \node[draw, fill=blue!25, minimum width=8cm, minimum height=1cm]
+        (l2) at (0, 1.5) {Couches 10--20 : Formes, structures vasculaires};
+    \node[draw, fill=blue!35, minimum width=8cm, minimum height=1cm]
+        (l3) at (0, 3.0) {Couches 30--40 : Microanévrysmes, hémorragies};
+    \node[draw, fill=blue!50, minimum width=8cm, minimum height=1cm]
+        (l4) at (0, 4.5) {Couches 40--50 : Pathologies spécifiques RD};
+    \draw[thick, ->] (l1) -- (l2);
+    \draw[thick, ->] (l2) -- (l3);
+    \draw[thick, ->] (l3) -- (l4);
+    \node[right] at (4.5, 0) {\footnotesize Générique (ImageNet)};
+    \node[right] at (4.5, 1.5) {\footnotesize Semi-spécifique};
+    \node[right] at (4.5, 3.0) {\footnotesize Spécifique RD};
+    \node[right] at (4.5, 4.5) {\footnotesize Tâche cible};
+\end{tikzpicture}
+\caption{Hiérarchie des features apprises par Transfer Learning.}
+\label{fig:feature_hierarchy}
+\end{figure}
+
+\section{Ensemble Learning}
+
+\subsection{Ensemble Learning et Soft Voting}
+
+L'\textit{Ensemble Learning} est une approche d'apprentissage automatique qui consiste à combiner plusieurs modèles afin d'obtenir de meilleures performances qu'un modèle unique. Le principe repose sur l'idée que différents modèles peuvent apprendre des représentations complémentaires des données et produire des erreurs différentes. En agrégeant leurs prédictions, il devient possible de réduire la variance, d'améliorer la robustesse et d'augmenter la capacité de généralisation du système.
+
+Dans le domaine de l'imagerie médicale, cette approche est particulièrement pertinente en raison de la variabilité des images et de la complexité des motifs pathologiques. Les modèles convolutifs peuvent en effet présenter des sensibilités différentes selon les caractéristiques visuelles apprises durant l'entraînement. L'utilisation d'un ensemble permet ainsi de limiter la dépendance à un seul modèle et de réduire le risque de prédictions instables ou biaisées.
+
+Parmi les différentes stratégies d'agrégation, le \textit{Soft Voting} est une méthode largement utilisée pour les tâches de classification. Contrairement au \textit{Hard Voting}, qui se base uniquement sur les classes prédites par chaque modèle, le Soft Voting exploite les probabilités associées aux prédictions. Les probabilités produites par les différents modèles sont moyennées, puis la classe finale correspond à celle possédant la probabilité moyenne la plus élevée.
+
+Cette approche présente plusieurs avantages dans les systèmes de diagnostic assisté par intelligence artificielle. En tenant compte du niveau de confiance de chaque modèle, le Soft Voting permet généralement d'obtenir des prédictions plus stables et plus fiables. Il contribue également à améliorer les performances sur des classes difficiles ou déséquilibrées, ce qui est particulièrement important dans la classification des stades de la rétinopathie diabétique.
+
+Mathématiquement, si plusieurs modèles produisent des probabilités $P_1, P_2, \ldots, P_n$ pour une classe donnée, la probabilité finale est calculée par :
+
+\begin{equation}
+p_{\text{ens}}(c) = \frac{1}{n} \sum_{i=1}^{n} P_i(c)
+\label{eq:soft_voting}
+\end{equation}
+
+où $n$ représente le nombre total de modèles utilisés dans l'ensemble.
+
+En pratique, les poids associés à chaque modèle peuvent être optimisés :
+
+\begin{equation}
+p_{\text{ens}}(c) = \frac{\sum_{i=1}^{n} w_i \cdot P_i(c)}{\sum_{i=1}^{n} w_i}
+\label{eq:weighted_soft_voting}
+\end{equation}
+
+où $w_i$ sont les poids pondérés (par ex. $w_{\text{res}} = 0.3$ et $w_{\text{eff}} = 0.5$ dans notre implémentation, optimisés par recherche exhaustive sur l'ensemble de validation).
+
+Ainsi, l'association de plusieurs architectures CNN à travers une stratégie de Soft Voting permet d'exploiter les forces complémentaires des modèles tout en améliorant la robustesse globale du système de classification.
+
+\section{Explainability (XAI) --- Grad-CAM}
+
+Grad-CAM (Gradient-weighted Class Activation Mapping) \cite{selvaraju2017grad}
+génère une carte de chaleur indiquant les régions de l'image ayant le plus
+influencé la décision du modèle :
+
+\begin{equation}
+L^c_{\text{Grad-CAM}} = \text{ReLU}\left(\sum_k w_k^c \cdot A^k\right)
+\label{eq:gradcam}
+\end{equation}
+
+où :
+\begin{itemize}
+    \item $A^k$ : carte d'activation de la couche $k$
+    \item $w_k^c = \frac{1}{Z} \sum_i \sum_j \frac{\partial y^c}{\partial A^k_{ij}}$ :
+          poids d'importance globale moyennée
+    \item $y^c$ : score (logit) pour la classe $c$
+\end{itemize}
+
+\subsection{Comparaison des méthodes XAI et recommandations}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison pratique et critères d'évaluation des méthodes XAI.}
+\label{tab:xai_comparison}
+\begin{tabular}{|l|p{3.2cm}|p{2.8cm}|p{2.6cm}|p{2.6cm}|p{4.7cm}|}
+\hline
+\textbf{Méthode} & \textbf{Principe d'attribution} & \textbf{Granularité} & \textbf{Coût d'inférence} & \textbf{Robustesse} & \textbf{Intérêt clinique et limites} \\
+\hline
+Saliency Map & Gradient brut par pixel & Très fine, mais très bruitée & Faible à modéré & Sensible au bruit et à l'initialisation & Fournit une information locale rapide, mais la lisibilité clinique est souvent limitée sans lissage; utile surtout comme baseline méthodologique. \\
+Integrated Gradients & Intégration des gradients le long d'un chemin de référence & Pixel-level & Élevé & Bonne stabilité théorique & Méthode plus rigoureuse que la simple saliency; pertinente pour l'analyse fine, mais coûteuse et moins intuitive pour une lecture visuelle immédiate. \\
+LIME & Approximation locale par perturbations & Super-pixels / régions & Élevé & Dépend du seed et du partitionnement & Intéressante pour interprétation locale, mais la variabilité des segments peut réduire la reproductibilité clinique. \\
+Grad-CAM & Gradients pondérés sur cartes d'activation convolutionnelles & Régions / localisation globale & Faible & Bonne pour les CNN & Méthode adaptée à la localisation des zones contributives dans les images rétiniennes; doit être validée quantitativement et n'est pas une preuve diagnostique autonome. \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Protocoles de Communication}
+
+\subsection{WebSocket}
+
+WebSocket est un protocole de communication bidirectionnel full-duplex
+sur une connexion TCP persistante. Contrairement à HTTP, il permet
+au serveur d'envoyer des données au client sans requête préalable.
+
+\begin{table}[H]
+\centering
+\caption{Comparaison HTTP vs WebSocket vs MQTT.}
+\label{tab:protocoles}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Aspect} & \textbf{HTTP} & \textbf{WebSocket} & \textbf{MQTT} \\
+\hline
+Latence & 200--500ms & 10--50ms & 5--30ms \\
+Overhead header & 400 octets & 2 octets & 5 octets \\
+Bidirectionnel & Non & Oui & Oui \\
+Support navigateur & Natif & Natif & Via bibliothèque \\
+Cas d'usage & Web classique & App web temps réel & IoT \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{MQTT pour l'IoT}
+
+MQTT (Message Queuing Telemetry Transport) est un protocole léger
+publish/subscribe adapté aux environnements IoT avec bande passante
+limitée. Il nécessite un broker central (ex: Mosquitto) et convient
+à l'interconnexion de caméras rétiniennes distantes avec le serveur
+d'analyse.
+
+\section{Les Choix Méthodologiques}
+
+\subsection{Modèles Sélectionnés et Justification}
+
+Le choix des modèles a été guidé par un compromis entre performance
+diagnostique, robustesse aux variations d'acquisition et coût de calcul.
+Trois familles ont été retenues dans l'architecture globale du système.
+
+\begin{itemize}
+    \item \textbf{ResNet50} : modèle CNN de référence, stable en transfert
+        d'apprentissage et performant pour la détection de structures
+        localisées (microanévrysmes, hémorragies ponctuelles). Ses
+        connexions résiduelles facilitent l'optimisation profonde et
+        réduisent le risque de dégradation du gradient.
+    \item \textbf{EfficientNet-B3} : modèle plus léger et mieux calibré
+        en efficacité paramétrique. Il améliore généralement le rapport
+        précision/latence grâce au compound scaling.
+    \item \textbf{ViT spécialisé RD} : modèle Transformer pré-entraîné
+        sur la rétinopathie diabétique, utile pour capturer des relations
+        globales dans l'image du fond d'oeil et améliorer la robustesse
+        face aux variations de texture et d'illumination.
+\end{itemize}
+
+Ce triplet est complémentaire : ResNet50 apporte une base CNN robuste,
+EfficientNet-B3 améliore l'efficacité, et ViT renforce la perception
+globale. En pratique, la fusion pondérée des probabilités (soft voting)
+avec calibration a été privilégiée pour stabiliser la décision finale.
+
+\begin{table}[H]
+\centering
+\caption{Justification des modèles retenus dans la pipeline.}
+\label{tab:choix_modeles}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Modèle} & \textbf{Atout principal} & \textbf{Rôle dans la pipeline} \\
+\hline
+ResNet50 & Robustesse en TL, bonnes features locales & Base CNN et comparaison de référence \\
+\hline
+EfficientNet-B3 & Efficacité paramètres/latence & Modèle complémentaire pour fusion \\
+\hline
+ViT (spécialisé RD) & Contexte global via attention & Renforcement de la robustesse globale \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Stratégie d'Apprentissage}
+
+\subsubsection{Partition des Données et Validation}
+
+La préparation du dataset a suivi une partition \textbf{stratifiée 80/20}
+sur les données nettoyées :
+
+\begin{itemize}
+    \item \textbf{Train (80\%)} : optimisation des poids du modèle ;
+    \item \textbf{Validation (20\%)} : sélection de checkpoints,
+        réglage des hyperparamètres et calibration ;
+    \item \textbf{Test externe} : utilisé uniquement pour vérification
+        finale et comparaison, sans rétroaction sur l'entraînement.
+\end{itemize}
+
+L'échantillonnage stratifié maintient la distribution des grades DR dans
+chaque sous-ensemble, ce qui est essentiel en présence d'un fort
+déséquilibre de classes.
+
+\subsubsection{Hyperparamètres et Protocole d'Optimisation}
+
+La stratégie d'entraînement combine transfert d'apprentissage,
+rééchantillonnage des classes minoritaires, et arrêt anticipé. Les
+configurations effectivement utilisées sont résumées ci-dessous.
+
+\begin{table}[H]
+\centering
+\caption{Hyperparamètres utilisés pour l'entraînement.}
+\label{tab:choix_hyperparametres_ch2}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Paramètre} & \textbf{ResNet50} & \textbf{EfficientNet-B3} \\
+\hline
+Taille d'entrée & $224 \times 224$ & $300 \times 300$ \\
+\hline
+Batch size & 16 & 8 \\
+\hline
+Learning rate initial & $1\times10^{-4}$ & $1\times10^{-4}$ \\
+\hline
+Optimiseur & AdamW & AdamW \\
+\hline
+Weight decay & $1\times10^{-5}$ & $1\times10^{-5}$ \\
+\hline
+Epochs max & 25 & 30 (+ fine-tuning 10) \\
+\hline
+Early stopping & Patience 5 & Patience 7 \\
+\hline
+Ordonnanceur LR & ReduceLROnPlateau & CosineAnnealingLR \\
+\hline
+Gestion imbalance & Focal Loss + sampler pondéré & CrossEntropy pondérée \\
+\hline
+\end{tabular}
+\end{table}
+
+Pour EfficientNet-B3, l'entraînement est réalisé en deux phases :
+entraînement de la tête de classification (backbone gelé), puis
+fine-tuning global avec un taux d'apprentissage plus faible.
+
+\subsubsection{Métriques d'Évaluation}
+
+Afin d'évaluer le modèle de manière fiable sur un dataset déséquilibré,
+plusieurs métriques complémentaires sont utilisées :
+
+\begin{itemize}
+    \item \textbf{Accuracy} : mesure globale, utile mais insuffisante seule ;
+    \item \textbf{Precision, Recall, F1-score par classe} : analyse
+        détaillée des performances cliniques par grade ;
+    \item \textbf{Macro-F1 et Weighted-F1} : équilibre entre classes rares
+        et classes majoritaires ;
+    \item \textbf{Quadratic Weighted Kappa (QWK)} : métrique adaptée au
+        caractère ordinal des grades de rétinopathie ;
+    \item \textbf{Matrice de confusion} : identification des confusions
+        inter-classes (notamment grades adjacents) ;
+    \item \textbf{ECE/AUC} : évaluation de la calibration des probabilités
+        et de la capacité de discrimination du modèle.
+\end{itemize}
+
+Cette combinaison métrique permet une lecture plus clinique de la
+performance qu'une simple accuracy et justifie les choix de calibration
+et de fusion retenus dans l'architecture finale.
+
+\section{Synthèse}
+
+Notre approche se distingue par la combinaison de :
+\begin{enumerate}
+    \item Un ensemble de modèles diversifiés (CNN + ViT)
+    \item Une calibration par Temperature Scaling pour des confiances fiables
+    \item Une explainability via Grad-CAM validée cliniquement
+    \item Une architecture de déploiement temps réel (WebSocket + IoT)
+\end{enumerate}
+
+\section{Comparaison avec des Solutions Comparables}
+
+Afin d'évaluer la pertinence de la plateforme proposée, une comparaison a été réalisée avec plusieurs solutions existantes de dépistage intelligent de la rétinopathie diabétique telles que RetinaLyze, Remidio Connect et d'autres plateformes modernes de téléscreening ophtalmologique.
+
+La méthodologie d'évaluation repose sur des critères techniques et cliniques directement liés aux besoins réels d'un workflow hospitalier moderne, notamment :
+\begin{itemize}
+    \item l'architecture de déploiement,
+    \item la gestion des examens et des patients,
+    \item l'intégration de l'intelligence artificielle,
+    \item l'explicabilité des résultats,
+    \item l'interopérabilité médicale,
+    \item la gestion multi-centres,
+    \item et la capacité d'intégration avec les systèmes hospitaliers.
+\end{itemize}
+
+Cette approche permet d'éviter une comparaison arbitraire uniquement basée sur les performances de classification et vise plutôt à évaluer la capacité des systèmes à fonctionner dans un environnement clinique réel.
+
+\begin{table}[H]
+\centering
+\caption{Comparaison fonctionnelle avec des plateformes existantes}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|p{5cm}|c|c|c|}
+\hline
+\textbf{Critère d'évaluation} & \textbf{Notre plateforme} & \textbf{RetinaLyze} & \textbf{Remidio Connect} \\
+\hline
+Détection IA de la rétinopathie diabétique & \checkmark & \checkmark & \checkmark \\
+\hline
+Validation médicale après IA & \checkmark & \checkmark & \checkmark \\
+\hline
+Génération de heatmaps / Grad-CAM & \checkmark & \checkmark & \checkmark \\
+\hline
+Architecture cloud centralisée & \checkmark & \checkmark & \checkmark \\
+\hline
+Déploiement multi-centres & \checkmark & \checkmark & \checkmark \\
+\hline
+Isolation logique par centre & \checkmark & Partiellement documenté & \checkmark \\
+\hline
+Workflow type PACS & \checkmark PACS-like & \checkmark & \checkmark \\
+\hline
+Intégration HL7/FHIR/DICOM & Architecture préparée & \checkmark & \checkmark \\
+\hline
+Compatibilité DICOM & \checkmark & \checkmark & \checkmark \\
+\hline
+Conservation des métadonnées médicales & \checkmark & \checkmark & \checkmark \\
+\hline
+Gestion des examens programmés (Worklist) & \checkmark & Partiellement & \checkmark \\
+\hline
+Validation humaine dans la boucle & \checkmark & \checkmark & \checkmark \\
+\hline
+Gestion centralisée des images et rapports & \checkmark & \checkmark & \checkmark \\
+\hline
+Gestion des rôles (médecin/admin/super admin) & \checkmark & Partiellement documenté & \checkmark \\
+\hline
+Explicabilité IA intégrée & \checkmark Grad-CAM & \checkmark & \checkmark \\
+\hline
+Approche hybride (centre existant / nouveau centre) & \checkmark & Non explicitement documenté & Partiellement \\
+\hline
+Architecture modulaire (frontend/backend/IA séparés) & \checkmark & Non détaillé publiquement & Partiellement \\
+\hline
+\end{tabular}
+}
+\label{tab:comparison_platforms}
+\end{table}
+
+Contrairement à une comparaison limitée aux seules métriques de classification, l'évaluation proposée adopte une approche systémique inspirée des workflows hospitaliers réels. Les critères retenus permettent d'évaluer non seulement la performance algorithmique, mais également :
+\begin{itemize}
+    \item la capacité d'intégration dans un environnement clinique réel,
+    \item l'interopérabilité avec les systèmes hospitaliers,
+    \item la maintenabilité de l'architecture,
+    \item la traçabilité des examens,
+    \item et la compatibilité avec les standards médicaux modernes tels que HL7, FHIR et DICOM.
+\end{itemize}
+
+Les plateformes commerciales étudiées disposent d'écosystèmes cliniques matures orientés vers la télémédecine et l'intégration hospitalière. Toutefois, notre système couvre plusieurs dimensions fonctionnelles observées dans les plateformes commerciales modernes tout en proposant une architecture hybride adaptée aux contraintes de déploiement clinique réel.
+
+La plateforme proposée combine ainsi :
+\begin{itemize}
+    \item une architecture cloud modulaire,
+    \item une gestion multi-centres,
+    \item des mécanismes d'explicabilité basés sur Grad-CAM,
+    \item une compatibilité avec les workflows PACS,
+    \item ainsi qu'une approche d'interopérabilité inspirée des standards hospitaliers.
+\end{itemize}
+
+Même s'il s'agit d'un prototype académique, l'architecture proposée se rapproche déjà des plateformes commerciales modernes de dépistage intelligent utilisées dans des environnements cliniques réels.
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 3 : PRÉTRAITEMENT ET MODÉLISATION
+% ============================================================================
+\chapter{Prétraitement des Données et Modélisation}
+
+\section{Dataset APTOS}
+
+\subsection{Description}
+
+Le dataset APTOS (Aravind Comprehensive Diabetic Retinopathy Image Dataset)
+provient de la compétition Kaggle 2019. Il contient des images de fond d'œil
+annotées par des ophtalmologues :
+
+\begin{table}[H]
+\centering
+\caption{Composition du dataset APTOS.}
+\label{tab:aptos}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Caractéristique} & \textbf{Valeur} \\
+\hline
+Images d'entraînement & 3662 \\
+Images de test & 1928 \\
+Format & JPEG, résolutions variables (512--4000 px) \\
+Labels & 5 classes ordinales (0--4) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Distribution des Classes}
+
+Avant tout prétraitement, la base APTOS est fortement déséquilibrée : la classe 0 (No DR) est très représentée, alors que les classes 1, 3 et 4 restent minoritaires. Cette situation peut biaiser l'apprentissage vers les cas les plus fréquents et réduire la sensibilité du modèle pour les stades plus rares.
+
+\textbf{Étape de nettoyage} : Durant cette étape, approximately 8.3\% des images sont éliminées en raison d'une mauvaise qualité (sous-exposition, surexposition, ou flou). Les images restantes (environ 3360 images) conservent la distribution de classe d'origine, mais avec une meilleure qualité optique.
+
+Le tableau suivant résume la distribution brute des classes avant toute intervention :
+
+\begin{table}[H]
+\centering
+\caption{Distribution des classes dans APTOS.}
+\label{tab:class_distribution}
+\begin{tabular}{|c|l|c|c|c|}
+\hline
+\textbf{Classe} & \textbf{Stade} & \textbf{Nombre} & \textbf{Pourcentage} & \textbf{Poids} \\
+\hline
+0 & No DR & 1703 & 48.6\% & 0.41 \\
+1 & Mild & 326 & 9.3\% & 2.15 \\
+2 & Moderate & 793 & 22.6\% & 0.88 \\
+3 & Severe & 269 & 7.7\% & 2.60 \\
+4 & Proliferative & 292 & 8.3\% & 2.40 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    xlabel={Classe DR},
+    ylabel={Nombre d'images},
+    symbolic x coords={0,1,2,3,4},
+    xtick=data,
+    nodes near coords,
+    bar width=0.6cm,
+    ymin=0,
+    width=10cm,
+    height=6cm,
+]
+\addplot coordinates {
+    (0, 1703) (1, 326) (2, 793) (3, 269) (4, 292)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Distribution des classes dans le dataset APTOS.}
+\label{fig:class_distribution}
+\end{figure}
+
+En résumé, le dataset APTOS initial contient \textbf{3662 images d'entraînement} réparties de manière déséquilibrée. Après nettoyage (suppression des 8.3\% d'images de mauvaise qualité), l'effectif descend à environ \textbf{3360 images}. Puis, suite à l'augmentation ciblée des classes minoritaires, ce nombre est porté à \textbf{8515 images}, avec une distribution uniforme et équilibrée de 1703 images par classe.
+
+\subsubsection{Distribution après nettoyage et augmentation}
+
+\subsubsection{Étape 1 : Présentation du Dataset Initial}
+
+Le dataset APTOS brut contient \textbf{3662 images d'entraînement} provenant de la compétition Kaggle 2019. Cependant, la distribution des classes est extrêmement déséquilibrée :
+
+\begin{itemize}
+    \item \textbf{Classe 0 (Pas de RD)} : 1703 images (48,6\%) - classe dominante
+    \item \textbf{Classe 1 (Léger)} : 326 images (9,3\%)
+    \item \textbf{Classe 2 (Modéré)} : 793 images (22,6\%)
+    \item \textbf{Classe 3 (Sévère)} : 269 images (7,7\%) - classe minoritaire
+    \item \textbf{Classe 4 (Prolifératif)} : 292 images (8,3\%)
+\end{itemize}
+
+Le ratio de déséquilibre est de 6,33:1 (la classe 0 est 6,33 fois plus représentée que la classe 3). Ce déséquilibre constitue un défi majeur : sans correction, le modèle d'apprentissage profond serait biaisé vers la prédiction de la classe dominante.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{distribution_stage1_raw.png}
+\caption{Étape 1 : Dataset APTOS initial avec 3662 images et distribution fortement déséquilibrée. La classe 0 (Pas de RD) représente 48,6\% des images, tandis que les classes rares (notamment la classe 3 - Sévère) ne constituent que 7,7\% du dataset.}
+\label{fig:stage1_raw}
+\end{figure}
+
+\subsubsection{Étape 2 : Après Nettoyage et Suppression de Mauvaise Qualité}
+
+L'étape de nettoyage identifie et élimine les images de mauvaise qualité selon deux critères basés sur l'analyse de luminosité :
+
+\begin{itemize}
+    \item \textbf{Luminosité < 20} : images trop sombres, peu exploitables
+    \item \textbf{Luminosité > 235} : images trop claires, surexposées
+\end{itemize}
+
+Cette étape supprime \textbf{302 images} (soit 8,3\% du dataset initial), réduisant l'effectif total à \textbf{environ 3360 images}. Les images restantes conservent la structure de la distribution d'origine mais avec une meilleure qualité optique garantissant une meilleure apprentissage.
+
+Distribution après nettoyage :
+\begin{itemize}
+    \item Classe 0 : 1561 images (conserve 91,7\%)
+    \item Classe 1 : 299 images (conserve 91,7\%)
+    \item Classe 2 : 727 images (conserve 91,7\%)
+    \item Classe 3 : 247 images (conserve 91,7\%)
+    \item Classe 4 : 268 images (conserve 91,7\%)
+\end{itemize}
+
+\textbf{Important} : Bien que le dataset soit plus petit, le déséquilibre entre les classes persiste. L'étape de nettoyage ne corrige pas le déséquilibre mais améliore la qualité des données disponibles.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{distribution_stage2_cleaning.png}
+\caption{Après nettoyage et suppression de 302 images de mauvaise qualité (~3360 images restantes). Bien que la distribution reste déséquilibrée, la qualité optique des images est améliorée. Les critères de suppression portent sur la luminosité globale (< 20 ou > 235) qui reflète la qualité de capture du fond d'œil.}
+\label{fig:stage2_cleaning}
+\end{figure}
+
+\subsubsection{Étape 3 : Après Augmentation des Données}
+
+L'augmentation des données est une technique cruciale pour corriger le déséquilibre. Elle génère des variantes synthétiques des images existantes en appliquant des transformations géométriques et photométriques :
+
+\textbf{Techniques d'augmentation appliquées} :
+\begin{itemize}
+    \item Rotations aléatoires ($\pm 15°$)
+    \item Flips horizontaux et verticaux
+    \item Zoom et recadrage aléatoire
+    \item Ajustements de luminosité et contraste
+    \item Distortions élastiques
+\end{itemize}
+
+Après augmentation, le dataset atteint \textbf{8515 images totales} avec une distribution \textbf{parfaitement équilibrée} : chaque classe contient exactement \textbf{1703 images} (20\% du dataset).
+
+Évolution du nombre d'images par classe :
+\begin{table}[H]
+\centering
+\caption{Augmentation des données : effectifs avant et après.}
+\label{tab:augmentation_stats}
+\begin{tabular}{|c|l|c|c|c|}
+\hline
+\textbf{Classe} & \textbf{Stade} & \textbf{Avant augmentation} & \textbf{Après augmentation} & \textbf{Images ajoutées (\%)} \\
+\hline
+0 & Pas de RD & 1561 & 1703 & +142 (+9.1\%) \\
+1 & Léger & 299 & 1703 & +1404 (+470\%) \\
+2 & Modéré & 727 & 1703 & +976 (+134\%) \\
+3 & Sévère & 247 & 1703 & +1456 (+589\%) \\
+4 & Prolifératif & 268 & 1703 & +1435 (+536\%) \\
+\hline
+\textbf{TOTAL} & & \textbf{3360} & \textbf{8515} & \textbf{+5155 (+153\%)} \\
+\hline
+\end{tabular}
+\end{table}
+
+Les classes rares (Sévère et Prolifératif) subissent l'augmentation la plus importante (589\% et 536\% respectivement), ce qui les rend maintenant aussi représentées que les classes dominantes. Cette égalisation est essentielle pour éviter le biais du modèle.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\linewidth]{distribution_stage3_augmentation.png}
+\caption{Après augmentation des données - 8515 images avec distribution parfaitement équilibrée. Chaque classe contient exactement 1703 images (20\% du dataset). Les classes rares subissent une augmentation majeure (jusqu'à 589\%) pour compenser leur sous-représentation initiale. Le dataset est désormais prêt pour l'entraînement sans biais de classe.}
+\label{fig:stage3_augmentation}
+\end{figure}
+
+\textbf{Résumé du Pipeline de Prétraitement} :
+
+Le pipeline complet transforme progressivement le dataset APTOS :
+\begin{enumerate}
+    \item \textbf{Dataset brut} : 3662 images, fortement déséquilibrées (ratio 6,33:1)
+    \item \textbf{Après nettoyage} : 3360 images (8,3\% supprimées), toujours déséquilibrées
+    \item \textbf{Après augmentation} : 8515 images, parfaitement équilibrées (1703 par classe, 20\% chacune)
+\end{enumerate}
+
+Cette approche multi-étapes garantit un apprentissage équitable du modèle pour toutes les classes de sévérité de la rétinopathie diabétique, en particulier pour les stades rares et critiques qui sont essentiels pour le diagnostic clinique.
+
+\section{Prétraitement des Images}
+
+\subsection{Détection de Qualité}
+
+Les images de mauvaise qualité (sous-exposition, flou) sont identifiées
+par analyse de luminosité :
+
+\begin{lstlisting}[caption={Détection de qualité d'image.}]
+from PIL import ImageStat
+brightness = ImageStat.Stat(img).mean[0]
+if brightness < 20 or brightness > 235:
+    mark_as_low_quality()
+\end{lstlisting}
+
+\subsection{Normalisation de Luminosité}
+
+L'égalisation d'histogramme et CLAHE (Contrast Limited Adaptive Histogram
+Equalization) homogénéisent les conditions d'éclairage :
+
+\begin{lstlisting}[caption={Normalisation de luminosité par CLAHE.}]
+import cv2
+lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+l, a, b = cv2.split(lab)
+clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+l = clahe.apply(l)
+img = cv2.merge((l, a, b))
+img = cv2.cvtColor(img, cv2.COLOR_LAB2BGR)
+\end{lstlisting}
+
+\subsection{Redimensionnement et Normalisation}
+
+Le redimensionnement constitue une étape indispensable pour standardiser
+les images avant leur passage dans les modèles de deep learning. Les images
+du dataset APTOS présentent des tailles variables, alors que les réseaux
+utilisés exigent tous une entrée de dimensions fixes. Cette étape permet
+donc d'assurer la compatibilité entre les données et l'architecture du
+modèle, tout en facilitant le traitement par lots pendant l'entraînement et
+l'inférence.
+
+Dans notre pipeline, chaque image est redimensionnée selon le modèle cible :
+
+\begin{itemize}
+    \item \textbf{ResNet50} : redimensionnement à $224 \times 224$ pixels
+    \item \textbf{EfficientNet-B3} : redimensionnement à $384 \times 384$ pixels
+    \item \textbf{ViT} : redimensionnement à $224 \times 224$ pixels
+    \item \textbf{Normalisation ImageNet} : $\mu = [0.485, 0.456, 0.406]$,
+          $\sigma = [0.229, 0.224, 0.225]$
+\end{itemize}
+
+Le choix de ces dimensions n'est pas arbitraire. Il résulte d'un compromis
+entre la préservation des détails visuels importants et les contraintes de
+calcul. Une résolution trop faible peut faire disparaître des indices
+cliniques subtils, comme les microanévrysmes ou de petits exsudats, tandis
+qu'une résolution trop élevée augmente le coût mémoire et ralentit
+l'inférence sans apporter de gain significatif.
+
+Dans le cas de $224 \times 224$, la résolution reste généralement suffisante
+pour capter les structures globales de la rétine et la majorité des lésions
+visibles, tout en accélérant nettement l'entraînement et l'inférence. Le
+coût principal est une diminution possible de la finesse de certains détails
+très localisés, mais cet effet reste limité lorsque le prétraitement en amont
+conserve une bonne qualité d'image et que le modèle bénéficie d'un
+pré-entraînement robuste.
+
+Avant le redimensionnement, les images sont généralement mises au format
+carré par padding afin d'éviter toute distorsion géométrique. Cette précaution
+est importante en imagerie rétinienne, car une déformation non uniforme
+pourrait modifier la forme apparente des structures vasculaires et nuire à la
+qualité de l'apprentissage.
+
+Après redimensionnement, la normalisation ImageNet recentre les intensités
+des canaux RGB pour aligner les distributions d'entrée sur celles utilisées
+pendant le pré-entraînement des modèles. Cette combinaison améliore la
+stabilité de l'optimisation, accélère la convergence et réduit la sensibilité
+du modèle aux variations de luminosité entre les acquisitions.
+
+\subsection{Méthode de Ben Graham}
+
+La méthode de Ben Graham est un prétraitement d'entrée couramment utilisé
+en imagerie rétinienne pour améliorer le contraste local et mettre en
+évidence les structures vasculaires et les lésions fines. Elle consiste
+généralement à combiner l'image originale avec une version floutée de
+grande échelle afin de réduire les variations d'illumination globales et
+de renforcer les détails pertinents du fond d'œil.
+
+Dans notre contexte, cette transformation peut être intégrée \textbf{en
+phase de production comme filtre d'entrée}, avant l'inférence des modèles,
+sans modifier leur entraînement. Comme elle agit uniquement sur les images
+entrantes, elle ne nécessite pas de réentraîner le réseau, à condition de
+rester cohérente avec le prétraitement appliqué lors de la validation et du
+déploiement.
+
+\textbf{Forme générale du principe} :
+\begin{equation}
+I_{\text{BG}} = 4I - 4G_{\sigma}(I) + 128
+\end{equation}
+
+où $I$ représente l'image d'entrée et $G_{\sigma}(I)$ une version lissée
+par un filtre gaussien de large variance. Le terme constant recentre les
+intensités pour obtenir une image visuellement plus exploitable.
+
+\textbf{Intérêt dans notre pipeline} :
+\begin{itemize}
+    \item réduction de l'ombrage périphérique et des variations de luminosité ;
+    \item meilleure visibilité des microanévrysmes, exsudats et hémorragies ;
+    \item harmonisation des images avant inférence, surtout en production ;
+    \item complément naturel au redimensionnement, à CLAHE et à la normalisation ImageNet.
+\end{itemize}
+
+\subsection{Impact du Prétraitement}
+
+\begin{table}[H]
+\centering
+\caption{Impact du prétraitement sur la performance.}
+\label{tab:preprocessing_impact}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Métrique} & \textbf{Avant} & \textbf{Après} \\
+\hline
+Écart-type luminosité & 45.2 & 12.8 \\
+Images basse qualité & 8.3\% & 1.2\% \\
+Accuracy du modèle & 71.2\% & 77.4\% \\
+Convergence & Lente & Rapide \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Gestion du Déséquilibre des Classes}
+
+\subsection{Class Weights}
+
+Les poids de classe sont calculés inversement proportionnellement à
+la fréquence :
+
+\begin{equation}
+w_c = \frac{n_{\text{total}}}{C \cdot n_c}
+\label{eq:class_weights}
+\end{equation}
+
+où $n_{\text{total}}$ est le nombre total d'échantillons, $C = 5$ le nombre
+de classes et $n_c$ le nombre d'échantillons de la classe $c$.
+
+\subsection{Focal Loss}
+
+La Focal Loss concentre l'apprentissage sur les exemples difficiles :
+
+\begin{equation}
+\mathcal{L}_{\text{focal}} = -\alpha_t (1 - p_t)^\gamma \log(p_t)
+\label{eq:focal_loss}
+\end{equation}
+
+\begin{itemize}
+    \item $p_t$ : probabilité prédite pour la classe vraie
+    \item $\gamma = 2$ : paramètre de focalisation
+    \item Exemple facile ($p_t = 0.99$) : perte réduite $\times 0.0001$
+    \item Exemple difficile ($p_t = 0.30$) : perte $\times 0.49$
+\end{itemize}
+
+\subsection{WeightedRandomSampler}
+
+À chaque epoch, l'échantillonneur pondéré sélectionne les exemples
+avec une probabilité inversement proportionnelle à la fréquence de
+leur classe :
+
+\begin{equation}
+P(\text{échantillon } i) = \frac{w_{y_i}}{\sum_j w_{y_j}}
+\label{eq:sampler}
+\end{equation}
+
+\section{Entraînement des Modèles}
+
+\subsection{Configuration de l'Entraînement}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparamètres d'entraînement par modèle.}
+\label{tab:hyperparams}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Paramètre} & \textbf{ResNet50} & \textbf{EfficientNet-B3} \\
+\hline
+Learning rate & 0.001 & 0.0005 \\
+Batch size & 32 & 32 \\
+Epochs max & 40 & 40 \\
+Early stopping patience & 10 & 10 \\
+Taille d'entrée & $224 \times 224$ & $384 \times 384$ \\
+Optimiseur & Adam & Adam \\
+Fonction de perte & CrossEntropy + weights & Focal Loss \\
+Scheduler & StepLR (step=20) & ReduceOnPlateau \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Augmentation de Données}
+
+\begin{lstlisting}[caption={Pipeline d'augmentation de données.}]
+transform_train = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.5),
+    transforms.RandomRotation(15),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+])
+\end{lstlisting}
+
+\section{Calibration par Temperature Scaling}
+
+\subsection{Principe}
+
+La sortie softmax brute d'un réseau neuronal n'est pas une probabilité
+calibrée. Le Temperature Scaling divise les logits par une température
+$T$ optimisée sur l'ensemble de validation :
+
+\begin{equation}
+p_i^{\text{calib}} = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}
+\label{eq:temperature}
+\end{equation}
+
+\subsection{Résultats de Calibration}
+
+\begin{table}[H]
+\centering
+\caption{Impact de la calibration par Temperature Scaling.}
+\label{tab:calibration}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Modèle} & \textbf{$T$ optimal} & \textbf{ECE avant} & \textbf{ECE après} & \textbf{Amélioration} \\
+\hline
+ResNet50 & 1.3816 & 0.1865 & 0.1642 & $-$12\% \\
+EfficientNet-B3 & 0.5714 & 0.2152 & 0.1286 & $-$40\% \\
+Ensemble & -- & 0.1777 & 0.1286 & $-$27.6\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Interprétation :}
+\begin{itemize}
+    \item $T > 1$ (ResNet50) : le modèle était sous-confiant
+    \item $T < 1$ (EfficientNet) : le modèle était surconfiant
+    \item ECE finale = 0.1286 : calibration de bonne qualité ($<$ 0.15)
+\end{itemize}
+
+\section{Test-Time Augmentation (TTA)}
+
+Le TTA applique 5 transformations géométriques à l'image de test et
+moyenne les prédictions :
+
+\begin{equation}
+\hat{p}(c) = \frac{1}{|T|} \sum_{t \in T} p_t(c)
+\label{eq:tta}
+\end{equation}
+
+avec $T = \{\text{original, hflip, vflip, rot}+15\degree, \text{rot}-15\degree\}$.
+
+\begin{table}[H]
+\centering
+\caption{Impact du TTA sur les performances.}
+\label{tab:tta}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Modèle} & \textbf{Sans TTA} & \textbf{Avec TTA} & \textbf{Gain} \\
+\hline
+ResNet50 & 68.4\% & 71.6\% & +3.2pp \\
+EfficientNet & 70.8\% & 73.6\% & +2.8pp \\
+Ensemble & 75.3\% & 77.4\% & +2.1pp \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Résultats et Évaluation}
+
+\subsection{Performance Globale de l'Ensemble}
+
+\begin{table}[H]
+\centering
+\caption{Performance finale du système (après calibration et optimisation des seuils).}
+\label{tab:final_performance}
+\begin{tabular}{|l|c|c|c|}
+\hline
+	extbf{Métrique} & \textbf{ResNet50} & \textbf{EfficientNet} & \textbf{Ensemble} \\
+\hline
+Accuracy & 68.59\% & 73.63\% & \textbf{83.29\%} \\
+Macro-F1 & 0.591 & 0.706 & \textbf{0.721} \\
+Weighted-F1 & 0.702 & 0.744 & \textbf{0.779} \\
+QWK (Cohen $\\kappa$) & 0.828 & 0.839 & \textbf{0.858} \\
+ECE (calibré) & 0.0787 & 0.1286 & \textbf{0.1286} \\
+AUC macro & 0.919 & 0.892 & \textbf{0.935} \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Matrice de Confusion de l'Ensemble Calibré}
+
+\begin{table}[H]
+\centering
+\caption{Matrice de confusion de l'ensemble calibré (validation).}
+\label{tab:confusion_matrix}
+\begin{tabular}{|c|ccccc|c|}
+\hline
+& \multicolumn{5}{c|}{\textbf{Prédiction}} & \\
+\textbf{Réel} & 0 & 1 & 2 & 3 & 4 & \textbf{Recall} \\
+\hline
+0 & \textbf{326} & 6 & 0 & 0 & 0 & 95.9\% \\
+1 & 3 & \textbf{44} & 18 & 4 & 2 & 61.9\% \\
+2 & 5 & 28 & \textbf{117} & 26 & 15 & 61.2\% \\
+3 & 0 & 2 & 4 & \textbf{24} & 6 & 66.7\% \\
+4 & 1 & 3 & 6 & 4 & \textbf{42} & 75.0\% \\
+\hline
+\textbf{Precision} & 97.3\% & 53.0\% & 80.7\% & 41.4\% & 64.6\% & \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Métriques par Classe}
+
+\begin{table}[H]
+\centering
+\caption{Rapport de classification détaillé par classe.}
+\label{tab:per_class}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Classe} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support} & \textbf{AUC} \\
+\hline
+0 (No DR) & 0.978 & 0.959 & 0.968 & 340 & 0.989 \\
+1 (Mild) & 0.564 & 0.619 & 0.590 & 71 & 0.821 \\
+2 (Moderate) & 0.818 & 0.612 & 0.702 & 191 & 0.905 \\
+3 (Severe) & 0.706 & 0.667 & 0.686 & 36 & 0.871 \\
+4 (Proliferative) & 0.700 & 0.750 & 0.724 & 56 & 0.931 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Courbe ROC}
+
+L'AUC macro de 0.898 confirme une excellente capacité de discrimination
+pour l'ensemble des classes. La classe 0 (No DR) atteint une AUC de 0.989,
+tandis que la classe 4 (Proliferative) obtient 0.931, démontrant la
+capacité du modèle à détecter les cas urgents.
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 4 : MÉTHODOLOGIE CRISP-DM ET SCRUM
+% ============================================================================
+\chapter{Méthodologie CRISP-DM et Gestion de Projet Scrum}
+
+\section{Introduction}
+
+Ce chapitre présente la méthodologie de travail adoptée pour le
+développement du système. Nous avons combiné CRISP-DM pour la partie
+data science et Scrum pour la gestion globale du projet.
+
+\section{CRISP-DM (Cross-Industry Standard Process for Data Mining)}
+
+CRISP-DM est un modèle de processus en 6 phases, adapté aux projets
+de data science et machine learning.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85]
+    % Hexagonal CRISP-DM phases
+    \node[draw, fill=orange!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p1) at (0, 6) {\textbf{1. Business Understanding}};
+    \node[draw, fill=yellow!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p2) at (5, 6) {\textbf{2. Data Understanding}};
+    \node[draw, fill=green!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p3) at (8, 3) {\textbf{3. Data Preparation}};
+    \node[draw, fill=blue!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p4) at (5, 0) {\textbf{4. Modeling}};
+    \node[draw, fill=purple!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p5) at (0, 0) {\textbf{5. Evaluation}};
+    \node[draw, fill=red!20, minimum width=3.5cm, minimum height=1.2cm, rounded corners]
+        (p6) at (-3, 3) {\textbf{6. Deployment}};
+    % Arrows
+    \draw[->, thick] (p1) -- (p2);
+    \draw[->, thick] (p2) -- (p3);
+    \draw[->, thick] (p3) -- (p4);
+    \draw[->, thick] (p4) -- (p5);
+    \draw[->, thick] (p5) -- (p6);
+    \draw[->, thick, dashed] (p5) -- (p3);
+    \draw[->, thick, dashed] (p6) -- (p1);
+\end{tikzpicture}
+\caption{Les 6 phases de la méthodologie CRISP-DM.}
+\label{fig:crisp_dm}
+\end{figure}
+
+\subsection{Phase 1 : Compréhension Métier (Business Understanding)}
+
+\begin{itemize}
+    \item \textbf{Objectif} : Développer un outil de dépistage automatisé
+          de la RD pour les centres ophtalmologiques tunisiens
+    \item \textbf{Critères de succès} : Accuracy $\geq$ 75\%, latence
+          $<$ 1s, ECE $<$ 0.15
+    \item \textbf{Parties prenantes} : Ophtalmologues, administrateurs
+          de centres, patients diabétiques
+    \item \textbf{Risques} : Qualité variable des images, déséquilibre
+          des classes, acceptabilité clinique
+\end{itemize}
+
+\subsection{Phase 2 : Compréhension des Données (Data Understanding)}
+
+\begin{itemize}
+    \item \textbf{Source} : Dataset APTOS (Kaggle 2019)
+    \item \textbf{Exploration} : Analyse de la distribution des classes,
+          de la qualité des images, des résolutions variables
+    \item \textbf{Constats} : Déséquilibre majeur (48.6\% classe 0 vs
+          7.7\% classe 3), images de qualité hétérogène
+    \item \textbf{Plan} : Nettoyage, augmentation, pondération des classes
+\end{itemize}
+
+\subsection{Phase 3 : Préparation des Données (Data Preparation)}
+
+\begin{itemize}
+    \item Nettoyage des images de basse qualité (1.2\% rejetées)
+    \item Normalisation de luminosité par CLAHE
+    \item Redimensionnement (224$\times$224 / 384$\times$384)
+    \item Split train/validation/test : 70/15/15
+    \item Augmentation : flips, rotations, colorjitter
+\end{itemize}
+
+\subsection{Phase 4 : Modélisation (Modeling)}
+
+\begin{itemize}
+    \item Entraînement ResNet50 avec Transfer Learning + Class Weights
+    \item Entraînement EfficientNet-B3 avec Transfer Learning + Focal Loss
+    \item Intégration du ViT pré-entraîné (HuggingFace)
+    \item Construction de l'ensemble (Soft Voting pondéré)
+    \item Calibration par Temperature Scaling
+    \item Optimisation des seuils (Threshold Tuning)
+\end{itemize}
+
+\subsection{Phase 5 : Évaluation (Evaluation)}
+
+\begin{itemize}
+    \item Accuracy finale : 77.38\% (objectif atteint)
+    \item ECE : 0.1286 (objectif atteint, $<$ 0.15)
+    \item Validation clinique Grad-CAM : alignement $>$ 85\% avec
+          les signes pathologiques attendus
+    \item QWK : 0.843 (excellente concordance ordinale)
+\end{itemize}
+
+\subsection{Phase 6 : Déploiement (Deployment)}
+
+\begin{itemize}
+    \item API FastAPI (service IA sur port 8000)
+    \item Backend Express.js (port 3000)
+    \item WebSocket (port 8080) pour les notifications temps réel
+    \item Interface web (HTML/CSS/JS) pour centre et médecin
+    \item Base de données MySQL (dr\_screening)
+\end{itemize}
+
+\section{Méthodologie Scrum}
+
+\subsection{Organisation en Sprints}
+
+Le développement a été organisé en sprints de 2 semaines :
+
+\begin{table}[H]
+\centering
+\caption{Planning des sprints du projet.}
+\label{tab:sprints}
+\begin{tabular}{|c|l|l|}
+\hline
+\textbf{Sprint} & \textbf{Objectif} & \textbf{Livrables} \\
+\hline
+1 & Exploration et prétraitement & Dataset nettoyé, pipeline prêt \\
+2 & Entraînement ResNet50 & Modèle ResNet50, métriques \\
+3 & Entraînement EfficientNet & Modèle EfficientNet, comparaison \\
+4 & Ensemble et calibration & Ensemble optimisé, ECE réduit \\
+5 & Grad-CAM et XAI & Heatmaps, validation clinique \\
+6 & Backend et API & API FastAPI, routes Express \\
+7 & Interface web & Dashboard médecin, centre admin \\
+8 & WebSocket et alertes & Notifications temps réel \\
+9 & Tests et déploiement & Tests end-to-end, documentation \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Artefacts Scrum}
+
+\begin{itemize}
+    \item \textbf{Product Backlog} : liste priorisée des fonctionnalités
+          (modèles IA, API, interface, alertes)
+    \item \textbf{Sprint Backlog} : tâches sélectionnées pour chaque sprint
+    \item \textbf{Incrément} : version fonctionnelle livrée à chaque fin
+          de sprint
+\end{itemize}
+
+\subsection{Cérémoniaux}
+
+\begin{itemize}
+    \item \textbf{Sprint Planning} : définition des objectifs du sprint
+    \item \textbf{Daily Standup} : point quotidien sur l'avancement
+    \item \textbf{Sprint Review} : démonstration des livrables
+    \item \textbf{Sprint Retrospective} : amélioration continue
+\end{itemize}
+
+\newpage
+
+% ============================================================================
+% CHAPITRE 5 : DÉPLOIEMENT, IOT ET INTERFACE
+% ============================================================================
+\chapter{Déploiement, IoT et Interface Web}
+
+\section{Architecture Globale du Système}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.5cm,
+    box/.style={draw, rectangle, rounded corners, minimum width=3cm,
+                minimum height=1.2cm, text centered, font=\small},
+    db/.style={draw, cylinder, shape border rotate=90, aspect=0.3,
+               minimum width=2cm, minimum height=1.2cm, font=\small},
+    arrow/.style={->, thick}
+]
+    % Frontend
+    \node[box, fill=green!15] (fe) at (0, 4) {Frontend\\HTML/JS/CSS};
+    % Backend
+    \node[box, fill=blue!15] (be) at (0, 2) {Backend\\Express.js :3000};
+    % AI Service
+    \node[box, fill=red!15] (ai) at (5, 2) {Service IA\\FastAPI :8000};
+    % WebSocket
+    \node[box, fill=yellow!15] (ws) at (-5, 2) {WebSocket\\Node.js :8080};
+    % Database
+    \node[box, fill=gray!15] (db) at (0, 0) {MySQL\\dr\_screening};
+    % IoT Camera
+    \node[box, fill=purple!15] (iot) at (-5, 4) {Caméra IoT\\MQTT / HTTP};
+
+    % Arrows
+    \draw[arrow] (fe) -- node[right] {\footnotesize HTTP} (be);
+    \draw[arrow] (fe) -- node[above] {\footnotesize WS} (ws);
+    \draw[arrow] (be) -- node[above] {\footnotesize HTTP} (ai);
+    \draw[arrow] (be) -- node[right] {\footnotesize SQL} (db);
+    \draw[arrow] (be) -- node[above] {\footnotesize notify} (ws);
+    \draw[arrow] (iot) -- node[left] {\footnotesize image} (be);
+    \draw[arrow, dashed] (iot) -- node[above] {\footnotesize MQTT} (ws);
+\end{tikzpicture}
+\caption{Architecture globale du système de dépistage.}
+\label{fig:architecture}
+\end{figure}
+
+\section{Service IA (FastAPI)}
+
+\subsection{Description}
+
+Le microservice IA est développé en Python avec FastAPI et PyTorch.
+Il expose les endpoints suivants :
+
+\begin{table}[H]
+\centering
+\caption{Endpoints de l'API IA.}
+\label{tab:ai_endpoints}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Méthode} & \textbf{Route} & \textbf{Description} \\
+\hline
+GET & /health & Vérification de santé \\
+POST & /predict & Prédiction du grade RD \\
+POST & /gradcam & Génération de la heatmap Grad-CAM \\
+POST & /analyze & Analyse complète (prédiction + heatmap) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Pipeline d'Inférence}
+
+\begin{algorithm}[H]
+\caption{Pipeline d'inférence du service IA}
+\label{algo:inference}
+\begin{algorithmic}[1]
+\Require Image rétinienne $I$
+\Ensure Grade $g$, confiance $c$, heatmap $H$
+\State $I' \leftarrow$ prétraitement($I$) \Comment{Resize, normalise}
+\State $p_{\text{vit}} \leftarrow$ ViT($I'$) \Comment{Modèle HuggingFace}
+\State $p_{\text{res}} \leftarrow$ ResNet50($I'$) \Comment{Modèle local}
+\State $p_{\text{eff}} \leftarrow$ EfficientNet($I'$) \Comment{Modèle local}
+\State $p_{\text{local}} \leftarrow 0.3 \cdot p_{\text{res}} + 0.5 \cdot p_{\text{eff}}$
+\State $p_{\text{final}} \leftarrow 0.6 \cdot p_{\text{vit}} + 0.4 \cdot p_{\text{local}}$
+\State $g \leftarrow \arg\max(p_{\text{final}})$
+\State $c \leftarrow p_{\text{final}}[g]$
+\State $H \leftarrow$ GradCAM($I'$, $g$) \Comment{Carte de chaleur}
+\State \Return $g, c, H$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Backend (Express.js)}
+
+\subsection{Routes et Fonctionnalités}
+
+\begin{table}[H]
+\centering
+\caption{Routes principales du backend.}
+\label{tab:backend_routes}
+\begin{tabular}{|l|l|p{5.5cm}|}
+\hline
+\textbf{Préfixe} & \textbf{Module} & \textbf{Fonctionnalité} \\
+\hline
+/api/auth & Authentification & Login JWT, vérification \\
+/api/patients & Patients & CRUD patients \\
+/api/doctors & Médecins & CRUD médecins \\
+/api/exams & Examens & Upload, analyse auto \\
+/api/doctor & Dashboard & Stats, examens, historique \\
+/api/doctor/alerts & Alertes & Alertes urgentes \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Flux de Soumission d'un Examen}
+
+\begin{enumerate}
+    \item L'administrateur du centre upload une image rétinienne
+    \item Le backend sauvegarde l'image et crée un examen (grade = $-1$)
+    \item Une notification WebSocket est envoyée au médecin assigné
+    \item La fonction \texttt{autoAnalyzeExam()} appelle le service IA
+    \item Le service IA retourne le grade, la confiance et la heatmap
+    \item L'examen est mis à jour en base de données
+    \item Si grade $\geq 3$ : alerte urgente créée + email + SMS + WebSocket
+\end{enumerate}
+
+\section{Base de Données}
+
+\subsection{Modèle Relationnel}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    entity/.style={draw, rectangle, minimum width=3cm, minimum height=1.5cm,
+                   font=\small, text centered, fill=blue!10},
+    rel/.style={->, thick}
+]
+    \node[entity] (centers) at (0, 4) {\textbf{centers}\\id, name,\\address, phone};
+    \node[entity] (users) at (5, 4) {\textbf{users}\\id, center\_id,\\role, email};
+    \node[entity] (patients) at (0, 1) {\textbf{patients}\\id, center\_id,\\full\_name};
+    \node[entity] (exams) at (5, 1) {\textbf{exams}\\id, patient\_id,\\grade, confidence};
+    \node[entity] (alerts) at (10, 1) {\textbf{alerts}\\id, exam\_id,\\doctor\_id, type};
+
+    \draw[rel] (centers) -- node[above] {\footnotesize 1:N} (users);
+    \draw[rel] (centers) -- node[left] {\footnotesize 1:N} (patients);
+    \draw[rel] (patients) -- node[above] {\footnotesize 1:N} (exams);
+    \draw[rel] (users) -- node[right] {\footnotesize 1:N} (exams);
+    \draw[rel] (exams) -- node[above] {\footnotesize 1:N} (alerts);
+\end{tikzpicture}
+\caption{Modèle relationnel de la base de données.}
+\label{fig:database}
+\end{figure}
+
+\section{Communication WebSocket}
+
+\subsection{Protocole}
+
+Le serveur WebSocket gère l'authentification JWT et le routage des
+notifications :
+
+\begin{enumerate}
+    \item Le client envoie \texttt{\{type: 'auth', token: '<JWT>'\}}
+    \item Le serveur vérifie le token et associe la connexion au médecin
+    \item Les notifications sont routées par \texttt{doctorId} ou \texttt{centerId}
+    \item Un heartbeat (ping/pong) maintient la connexion toutes les 30s
+\end{enumerate}
+
+\subsection{Types de Notifications}
+
+\begin{itemize}
+    \item \textbf{new\_exam} : nouvel examen soumis
+    \item \textbf{exam\_analyzed} : résultat IA disponible
+    \item \textbf{urgent\_alert} : grade $\geq$ 3 détecté
+\end{itemize}
+
+\section{Simulation IoT}
+
+\subsection{Scénario de Déploiement}
+
+Dans un contexte tunisien, le système peut interconnecter :
+
+\begin{itemize}
+    \item Des \textbf{centres d'imagerie} équipés de caméras rétiniennes
+          qui capturent les images et les transmettent au serveur central
+    \item Un \textbf{serveur central} hébergeant le service IA et la
+          base de données
+    \item Des \textbf{postes de médecins} (desktop ou mobile) recevant
+          les alertes en temps réel via WebSocket
+\end{itemize}
+
+\subsection{Protocole MQTT pour IoT}
+
+Pour la communication entre les caméras IoT et le serveur, MQTT offre
+des avantages significatifs :
+
+\begin{itemize}
+    \item Protocole léger (overhead minimal de 2 octets)
+    \item Modèle publish/subscribe via un broker (Mosquitto)
+    \item Qualité de service (QoS 0, 1 ou 2)
+    \item Adapté aux connexions intermittentes
+\end{itemize}
+
+\subsection{Architecture IoT}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rectangle, rounded corners, minimum width=3cm,
+                minimum height=1cm, text centered, font=\small},
+    arrow/.style={->, thick}
+]
+    \node[box, fill=purple!15] (cam1) at (-4, 3) {Caméra Centre A};
+    \node[box, fill=purple!15] (cam2) at (-4, 1.5) {Caméra Centre B};
+    \node[box, fill=purple!15] (cam3) at (-4, 0) {Caméra Centre C};
+
+    \node[box, fill=orange!20] (broker) at (0, 1.5) {Broker MQTT\\(Mosquitto)};
+
+    \node[box, fill=blue!15] (server) at (4, 1.5) {Serveur Central\\(Backend + IA)};
+
+    \node[box, fill=green!15] (doc1) at (8, 3) {Médecin 1 (WS)};
+    \node[box, fill=green!15] (doc2) at (8, 0) {Médecin 2 (WS)};
+
+    \draw[arrow] (cam1) -- (broker);
+    \draw[arrow] (cam2) -- (broker);
+    \draw[arrow] (cam3) -- (broker);
+    \draw[arrow] (broker) -- (server);
+    \draw[arrow] (server) -- (doc1);
+    \draw[arrow] (server) -- (doc2);
+\end{tikzpicture}
+\caption{Architecture IoT avec MQTT et WebSocket.}
+\label{fig:iot_architecture}
+\end{figure}
+
+\section{Interface Web}
+
+\subsection{Interface Administrateur du Centre}
+
+L'administrateur dispose de :
+\begin{itemize}
+    \item Gestion des patients (CRUD)
+    \item Gestion des médecins
+    \item Soumission d'examens avec upload d'image
+    \item Suivi des résultats
+\end{itemize}
+
+\textbf{URLs principales :}
+\begin{itemize}
+    \item \texttt{http://localhost:3000/login} : Authentification
+    \item \texttt{http://localhost:3000/center/patients} : Liste des patients
+    \item \texttt{http://localhost:3000/center/new-exam} : Nouvel examen
+\end{itemize}
+
+\subsection{Dashboard Médecin}
+
+Le médecin accède à :
+\begin{itemize}
+    \item Tableau de bord avec statistiques (examens, alertes, distribution)
+    \item Liste des examens (filtrables par grade)
+    \item Détail d'un examen : image originale + heatmap Grad-CAM
+    \item Système d'alertes urgentes avec notifications en temps réel
+\end{itemize}
+
+\subsection{Services Annexes}
+
+\begin{table}[H]
+\centering
+\caption{Services annexes du système.}
+\label{tab:services}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Service} & \textbf{Technologie} & \textbf{Fonction} \\
+\hline
+Email & Nodemailer (Gmail) & Alertes urgentes par email \\
+SMS & Twilio & Alertes urgentes par SMS \\
+WebSocket & ws (Node.js) & Notifications temps réel \\
+Authentification & JWT & Sécurisation des accès \\
+Upload & Multer & Gestion des fichiers images \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Technologies Utilisées}
+
+\begin{table}[H]
+\centering
+\caption{Stack technologique du projet.}
+\label{tab:stack}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Composant} & \textbf{Technologie} & \textbf{Version} \\
+\hline
+Service IA & Python, FastAPI, PyTorch & 3.10 / 0.100+ / 2.0+ \\
+Modèles DL & ResNet50, EfficientNet-B3, ViT & torchvision \\
+XAI & Grad-CAM (PyTorch hooks) & custom \\
+Backend & Node.js, Express.js & 18+ / 4.18+ \\
+Base de données & MySQL & 8.0 \\
+WebSocket & ws (Node.js) & 8.14+ \\
+Frontend & HTML5, CSS3, JavaScript & -- \\
+Auth & JWT (jsonwebtoken) & 9.0+ \\
+Email & Nodemailer & 6.9+ \\
+SMS & Twilio SDK & 4.0+ \\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
+
+% ============================================================================
+% CONCLUSION
+% ============================================================================
+\chapter*{Conclusion et Perspectives}
+\addcontentsline{toc}{chapter}{Conclusion et Perspectives}
+
+\section*{Bilan}
+
+Ce projet de fin d'études a permis de concevoir et développer un système
+complet de dépistage automatisé de la rétinopathie diabétique. Les
+principaux résultats obtenus sont :
+
+\begin{itemize}
+    \item \textbf{Accuracy de 77.38\%} sur le dataset APTOS, dépassant
+          l'objectif fixé de 75\%
+    \item \textbf{ECE de 0.1286} attestant d'une calibration de qualité
+          des confiances prédites
+    \item \textbf{QWK de 0.843} démontrant une excellente concordance
+          ordinale avec le diagnostic humain
+    \item \textbf{Grad-CAM} validé cliniquement avec un alignement
+          supérieur à 85\% avec les signes pathologiques attendus
+    \item \textbf{Architecture temps réel} complète avec WebSocket,
+          alertes email/SMS, et interface web ergonomique
+    \item \textbf{Architecture IoT} permettant l'interconnexion
+          de centres distants via MQTT
+\end{itemize}
+
+\section*{Apport Personnel}
+
+Ce projet m'a permis d'acquérir des compétences approfondies en :
+\begin{itemize}
+    \item Deep learning et transfer learning pour l'imagerie médicale
+    \item Calibration et évaluation rigoureuse des modèles
+    \item Développement full-stack (Python/FastAPI + Node.js/Express)
+    \item Protocoles de communication temps réel (WebSocket, MQTT)
+    \item Gestion de projet via Scrum et CRISP-DM
+\end{itemize}
+
+\section*{Perspectives}
+
+Plusieurs améliorations sont envisageables :
+\begin{enumerate}
+    \item \textbf{Dataset plus large} : entraîner sur EyePACS (88000+ images)
+          pour améliorer la généralisation
+    \item \textbf{Segmentation automatique} : identifier précisément
+          les lésions (microanévrysmes, exsudats)
+    \item \textbf{Application mobile} : déployer le modèle sur smartphone
+          via TensorFlow Lite ou ONNX Runtime
+    \item \textbf{Fédération de centres} : implémenter une architecture
+          multi-centres avec MQTT en production
+    \item \textbf{Conformité HIPAA/RGPD} : renforcer la sécurité des
+          données médicales
+    \item \textbf{Étude clinique} : valider le système en conditions réelles
+          dans des centres ophtalmologiques tunisiens
+\end{enumerate}
+
+% ============================================================================
+% BIBLIOGRAPHIE
+% ============================================================================
+\begin{thebibliography}{99}
+
+\bibitem{he2016deep}
+K. He, X. Zhang, S. Ren, et J. Sun,
+``Deep Residual Learning for Image Recognition,''
+\textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+pp. 770--778, 2016.
+
+\bibitem{tan2019efficientnet}
+M. Tan et Q. Le,
+``EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks,''
+\textit{International Conference on Machine Learning (ICML)},
+pp. 6105--6114, 2019.
+
+\bibitem{dosovitskiy2020image}
+A. Dosovitskiy et al.,
+``An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale,''
+\textit{International Conference on Learning Representations (ICLR)},
+2021.
+
+\bibitem{selvaraju2017grad}
+R. R. Selvaraju et al.,
+``Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization,''
+\textit{International Journal of Computer Vision},
+vol. 128, no. 2, pp. 336--359, 2020.
+
+\bibitem{gulshan2016development}
+V. Gulshan et al.,
+``Development and Validation of a Deep Learning Algorithm for Detection of Diabetic Retinopathy in Retinal Fundus Photographs,''
+\textit{JAMA}, vol. 316, no. 22, pp. 2402--2410, 2016.
+
+\bibitem{gargeya2017automated}
+R. Gargeya et T. Leng,
+``Automated Identification of Diabetic Retinopathy Using Deep Learning,''
+\textit{Ophthalmology}, vol. 124, no. 7, pp. 962--969, 2017.
+
+\bibitem{pratt2016convolutional}
+H. Pratt et al.,
+``Convolutional Neural Networks for Diabetic Retinopathy,''
+\textit{Procedia Computer Science}, vol. 90, pp. 200--205, 2016.
+
+\bibitem{voets2019reproduction}
+M. Voets, K. Mollersen, et L. Bongo,
+``Reproduction Study Using Public Data of: Development and Validation of a Deep Learning Algorithm,''
+\textit{PLoS ONE}, vol. 14, no. 6, 2019.
+
+\bibitem{guo2017calibration}
+C. Guo, G. Pleiss, Y. Sun, et K. Q. Weinberger,
+``On Calibration of Modern Neural Networks,''
+\textit{International Conference on Machine Learning (ICML)},
+pp. 1321--1330, 2017.
+
+\bibitem{lin2017focal}
+T.-Y. Lin, P. Goyal, R. Girshick, K. He, et P. Doll\'{a}r,
+``Focal Loss for Dense Object Detection,''
+\textit{IEEE International Conference on Computer Vision (ICCV)},
+pp. 2980--2988, 2017.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,415 @@
+% =========================
+% CHAPITRE 3 : CONCEPTION
+% Fichier a inclure depuis le rapport principal via \input{chapters/chapitre3_conception}
+% =========================
+
+\chapter{Conception}
+\label{chap:conception}
+
+\section{Introduction}
+Ce chapitre presente la conception de l'application de depistage automatise de la retinopathie diabetique.
+Il transforme les besoins metier en une specification technique claire, en passant par l'analyse du systeme,
+la modelisation des exigences et la definition de l'architecture.
+
+L'objectif est de garantir une solution coherent entre la pratique clinique et les contraintes informatiques,
+avec une separation nette des responsabilites entre les differents profils utilisateurs.
+
+\section{Langage et outils de modelisation}
+
+\subsection{Langage de modelisation}
+Le langage retenu pour la conception est UML (Unified Modeling Language), car il permet de representer
+le systeme selon plusieurs vues complementaires :
+\begin{itemize}
+    \item vue fonctionnelle (diagrammes de cas d'utilisation) ;
+    \item vue statique (diagramme de classes) ;
+    \item vue dynamique (diagrammes de sequence).
+\end{itemize}
+
+UML est adapte a ce projet car il facilite la communication entre les acteurs techniques et metier,
+et fournit une base de reference pour l'implementation.
+
+\subsection{Outils de modelisation}
+Les outils utilises pour produire et maintenir les diagrammes sont :
+\begin{itemize}
+    \item Mermaid (fichiers .mmd) pour versionner les diagrammes avec le code source ;
+    \item draw.io / diagrams.net pour les exports visuels a integrer dans le memoire ;
+    \item LaTeX pour la redaction finale et la tracabilite des sections.
+\end{itemize}
+
+Le choix de Mermaid permet une meilleure reproductibilite des diagrammes et une maintenance plus simple
+au cours des iterations du projet.
+
+\section{Analyse de systeme}
+
+\subsection{Acteurs}
+L'analyse metier identifie des acteurs principaux (metier) et des acteurs secondaires (techniques)
+qui interagissent avec l'application :
+\begin{table}[H]
+\centering
+\caption{Acteurs du systeme et principales taches}
+\label{tab:acteurs_systeme}
+\begin{tabular}{|p{2.8cm}|p{3.2cm}|p{8.3cm}|}
+\hline
+\textbf{Acteur} & \textbf{Type d'acteur} & \textbf{Taches} \\
+\hline
+\textbf{CenterAdmin} & Acteur metier principal &
+\begin{tabular}[t]{@{}l@{}}
+- Creer, consulter, modifier et archiver les fiches patient \\
+- Gerer les comptes medecins rattaches au centre \\
+- Verifier la qualite de l'image avant soumission \\
+- Lancer l'examen et suivre son etat (en cours, termine) \\
+- Consulter l'historique des examens du centre \\
+- Coordonner avec le medecin en cas de resultat severe
+\end{tabular} \\
+\hline
+\textbf{Doctor} & Acteur metier principal &
+\begin{tabular}[t]{@{}l@{}}
+- Consulter les examens classes par priorite clinique \\
+- Analyser le grade IA, le score de confiance et la heatmap Grad-CAM \\
+- Interpreter les zones suspectes avec le contexte medical du patient \\
+- Valider la conduite clinique (surveillance, controle rapide, orientation) \\
+- Traiter les alertes urgentes et les marquer comme resolues \\
+- Ajouter des notes cliniques pour la tracabilite
+\end{tabular} \\
+\hline
+\textbf{SuperAdmin} & Acteur de gouvernance &
+\begin{tabular}[t]{@{}l@{}}
+- Administrer les centres (activation, desactivation, parametrage) \\
+- Gerer les comptes globaux et les droits d'acces \\
+- Superviser les indicateurs globaux (volumetrie, alertes, disponibilite) \\
+- Suivre les tickets de support et les incidents critiques \\
+- Coordonner les actions correctives avec les equipes techniques \\
+- Assurer la conformite et la securite operationnelle
+\end{tabular} \\
+\hline
+\textbf{Service IA} & Acteur technique secondaire &
+\begin{tabular}[t]{@{}l@{}}
+- Recevoir l'image du fond d'oeil depuis le backend \\
+- Executer l'inference pour predire le grade de retinopathie (0--4) \\
+- Calculer et retourner le niveau de confiance \\
+- Generer la heatmap Grad-CAM pour l'explicabilite \\
+- Renvoyer une reponse structuree exploitable par l'application
+\end{tabular} \\
+\hline
+\textbf{Service WebSocket} & Acteur technique secondaire &
+\begin{tabular}[t]{@{}l@{}}
+- Maintenir les connexions temps reel avec les interfaces clientes \\
+- Authentifier les connexions autorisees \\
+- Diffuser les notifications de nouveaux examens/alertes \\
+- Assurer la mise a jour immediate des tableaux de bord
+\end{tabular} \\
+\hline
+\textbf{Serveur SMTP} & Acteur technique secondaire &
+\begin{tabular}[t]{@{}l@{}}
+- Recevoir les demandes d'envoi d'e-mails depuis le backend \\
+- Envoyer les notifications pour les cas severes \\
+- Fournir un canal de communication asynchrone en cas d'urgence
+\end{tabular} \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Important :} \textit{Patient} et \textit{Center} ne sont pas modelises comme acteurs,
+mais comme entites metier manipulees par le systeme.
+
+\subsection{Exigences fonctionnelles}
+Les exigences fonctionnelles sont regroupees par domaine :
+
+\subsubsection*{Gestion des comptes et securite}
+\begin{itemize}
+    \item authentification par role (CenterAdmin, Doctor, SuperAdmin) ;
+    \item gestion de session et controle d'acces selon le profil ;
+    \item deconnexion securisee.
+\end{itemize}
+
+\subsubsection*{Gestion clinique et operationnelle}
+\begin{itemize}
+    \item creation, consultation, modification et archivage des patients ;
+    \item gestion des medecins par centre ;
+    \item creation d'un examen avec upload de l'image du fond d'oeil.
+\end{itemize}
+
+\subsubsection*{Analyse IA et explicabilite}
+\begin{itemize}
+    \item prediction automatique du grade de retinopathie (0 a 4) ;
+    \item calcul d'un score de confiance associe a la prediction ;
+    \item generation d'une carte de chaleur Grad-CAM ;
+    \item conservation de la sortie IA dans l'historique d'examens.
+\end{itemize}
+
+\subsubsection*{Alerte et supervision}
+\begin{itemize}
+    \item creation d'alertes automatiques pour les cas severes (grade >= 3) ;
+    \item notification temps reel du medecin ;
+    \item suivi des alertes (non lue, lue, resolue) ;
+    \item supervision globale et support par le SuperAdmin.
+\end{itemize}
+
+\subsection{Exigences non fonctionnelles}
+Les exigences non fonctionnelles assurent la qualite globale du systeme :
+\begin{itemize}
+    \item \textbf{Performance} : temps de reponse court pour l'inference et l'affichage des resultats ;
+    \item \textbf{Disponibilite} : acces continu a l'application pour les centres et medecins ;
+    \item \textbf{Securite} : protection des donnees medicales, isolation par centre, controle des acces ;
+    \item \textbf{Fiabilite} : tracabilite des examens et des alertes ;
+    \item \textbf{Scalabilite} : possibilite d'ajouter des centres et d'augmenter le volume d'examens ;
+    \item \textbf{Maintenabilite} : architecture modulaire (web app, service IA, service temps reel) ;
+    \item \textbf{Explicabilite} : utilisation d'une visualisation interpretable pour appuyer la decision medicale.
+\end{itemize}
+
+Dans la configuration courante du projet, la visualisation explicative par defaut est une Grad-CAM
+focalisee sur la couche \textit{layer4} du modele ResNet, afin de produire des cartes de chaleur plus ciblees.
+
+\section{Modelisation des exigences fonctionnelles}
+
+\subsection{Diagramme de cas d'utilisation general}
+Le diagramme general regroupe les interactions majeures entre les trois acteurs et le systeme.
+
+\textbf{Cas d'utilisation communs :}
+\begin{itemize}
+    \item se connecter ;
+    \item consulter son tableau de bord ;
+    \item se deconnecter.
+\end{itemize}
+
+\textbf{Cas d'utilisation CenterAdmin :}
+\begin{itemize}
+    \item gerer patients ;
+    \item gerer medecins ;
+    \item creer examen ;
+    \item consulter historique des examens du centre.
+\end{itemize}
+
+\textbf{Cas d'utilisation Doctor :}
+\begin{itemize}
+    \item consulter liste des examens ;
+    \item consulter detail d'un examen ;
+    \item visualiser prediction et heatmap ;
+    \item traiter alertes cliniques.
+\end{itemize}
+
+\textbf{Cas d'utilisation SuperAdmin :}
+\begin{itemize}
+    \item gerer centres ;
+    \item gerer comptes globaux ;
+    \item superviser l'activite de la plateforme ;
+    \item gerer les tickets de support et le suivi global.
+\end{itemize}
+
+\subsection{Diagrammes de cas d'utilisation detaillee}
+
+\subsubsection*{a) Use case Admin (CenterAdmin)}
+Le profil CenterAdmin assure la preparation operationnelle du depistage.
+Le scenario principal est le suivant :
+\begin{enumerate}
+    \item l'admin authentifie ouvre l'espace centre ;
+    \item il cree ou selectionne un patient ;
+    \item il associe un medecin referent ;
+    \item il charge l'image retinienne ;
+    \item il valide la creation d'examen ;
+    \item le systeme declenche l'analyse IA et enregistre le resultat.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.90, every node/.style={font=\small}]
+    % Limite du systeme
+    \draw[thick] (1.7,0.8) rectangle (13.3,8.3);
+    \node[anchor=west] at (1.9,8.02) {Systeme de depistage RD};
+
+    % Acteur CenterAdmin
+    \draw (0.1,6.0) circle (0.3);
+    \draw (0.1,5.7) -- (0.1,4.8);
+    \draw (-0.45,5.35) -- (0.65,5.35);
+    \draw (0.1,4.8) -- (-0.35,4.1);
+    \draw (0.1,4.8) -- (0.55,4.1);
+    \node at (0.1,3.7) {CenterAdmin};
+
+    % Acteur secondaire Service IA
+    \draw (14.8,5.0) circle (0.3);
+    \draw (14.8,4.7) -- (14.8,3.8);
+    \draw (14.25,4.35) -- (15.35,4.35);
+    \draw (14.8,3.8) -- (14.35,3.1);
+    \draw (14.8,3.8) -- (15.25,3.1);
+    \node[align=center] at (14.8,2.55) {Service IA};
+
+    % Cas d'utilisation principaux
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua1) at (7.6,7.1) {Se connecter};
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua2) at (7.6,6.1) {Gerer patients};
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua3) at (7.6,5.1) {Gerer medecins};
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua4) at (7.6,4.1) {Creer examen};
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua5) at (7.6,3.1) {Consulter historique des examens};
+    \node[draw, ellipse, minimum width=4.8cm, minimum height=0.9cm] (ua6) at (7.6,2.1) {Se deconnecter};
+
+    % Sous-cas d'utilisation de "Creer examen"
+    \node[draw, ellipse, minimum width=4.2cm, minimum height=0.85cm] (ua41) at (4.2,1.25) {Televerser image retinienne};
+    \node[draw, ellipse, minimum width=4.2cm, minimum height=0.85cm] (ua42) at (7.6,1.25) {Associer patient et medecin};
+    \node[draw, ellipse, minimum width=4.2cm, minimum height=0.85cm] (ua43) at (11.0,1.25) {Soumettre a l'analyse IA};
+
+    % Liens acteur principal
+    \draw (0.65,5.35) -- (ua1.west);
+    \draw (0.65,5.35) -- (ua2.west);
+    \draw (0.65,5.35) -- (ua3.west);
+    \draw (0.65,5.35) -- (ua4.west);
+    \draw (0.65,5.35) -- (ua5.west);
+    \draw (0.65,5.35) -- (ua6.west);
+
+    % Include
+    \draw[->, dashed] (ua4.south west) -- (ua41.north);
+    \node at (5.6,2.4) {<<include>>};
+    \draw[->, dashed] (ua4.south) -- (ua42.north);
+    \node at (7.6,2.4) {<<include>>};
+    \draw[->, dashed] (ua4.south east) -- (ua43.north);
+    \node at (9.7,2.4) {<<include>>};
+
+    % Lien avec l'acteur secondaire IA
+    \draw (14.25,4.35) -- (ua43.east);
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation detaille -- acteur CenterAdmin.}
+\label{fig:usecase_centeradmin}
+\end{figure}
+
+\textbf{Post-condition :} un examen complet (image, grade, confiance, heatmap) est disponible.
+
+\subsubsection*{b) Use case Doctor}
+Le profil Doctor exploite les resultats pour l'aide a la decision clinique.
+Le scenario principal est :
+\begin{enumerate}
+    \item le medecin consulte la liste des examens classes par severite ;
+    \item il ouvre un examen ;
+    \item il analyse le grade predit, la confiance et la heatmap ;
+    \item il decide la conduite clinique (surveillance, controle rapide, orientation urgente) ;
+    \item il marque l'alerte comme traitee si necessaire.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92, every node/.style={font=\small}]
+    % Limite du systeme
+    \draw[thick] (1.5,0.8) rectangle (12.5,8.2);
+    \node[anchor=west] at (1.7,7.95) {Systeme de depistage RD};
+
+    % Acteur Doctor
+    \draw (0,5.9) circle (0.3);
+    \draw (0,5.6) -- (0,4.7);
+    \draw (-0.55,5.25) -- (0.55,5.25);
+    \draw (0,4.7) -- (-0.45,4.0);
+    \draw (0,4.7) -- (0.45,4.0);
+    \node at (0,3.6) {Doctor};
+
+    % Cas d'utilisation
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc1) at (7.0,6.9) {Se connecter};
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc2) at (7.0,5.8) {Consulter liste des examens};
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc3) at (7.0,4.7) {Consulter detail d'un examen};
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc4) at (7.0,3.6) {Visualiser prediction et heatmap};
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc5) at (7.0,2.5) {Traiter alertes cliniques};
+    \node[draw, ellipse, minimum width=4.9cm, minimum height=0.95cm] (uc6) at (7.0,1.4) {Se deconnecter};
+
+    % Associations acteur -> use cases
+    \draw (0.55,5.25) -- (uc1.west);
+    \draw (0.55,5.25) -- (uc2.west);
+    \draw (0.55,5.25) -- (uc3.west);
+    \draw (0.55,5.25) -- (uc4.west);
+    \draw (0.55,5.25) -- (uc5.west);
+    \draw (0.55,5.25) -- (uc6.west);
+
+    % Relations include
+    \draw[->, dashed] (uc3.south) -- (uc4.north);
+    \node at (10.8,4.15) {<<include>>};
+    \draw[->, dashed] (uc5.north) -- (uc3.south);
+    \node at (10.8,3.05) {<<include>>};
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation detaille -- acteur Doctor.}
+\label{fig:usecase_doctor}
+\end{figure}
+
+\textbf{Post-condition :} la decision medicale est tracee et l'etat d'alerte est mis a jour.
+
+\subsubsection*{c) Use case SuperAdmin}
+Le profil SuperAdmin intervient au niveau de la gouvernance de la plateforme.
+Le scenario principal est :
+\begin{enumerate}
+    \item le super administrateur se connecte au dashboard global ;
+    \item il supervise les centres actifs et les comptes utilisateurs ;
+    \item il controle la qualite de service (tickets, incidents, disponibilite) ;
+    \item il applique les actions d'administration necessaires.
+\end{enumerate}
+
+\textbf{Post-condition :} la plateforme reste operationnelle, securisee et conforme aux objectifs de service.
+
+\subsection{Diagramme de classes}
+Le diagramme de classes represente les entites de base et leurs relations.
+Les classes principales sont :
+\begin{itemize}
+    \item \textbf{Center} ;
+    \item \textbf{User} (specialise en CenterAdmin, Doctor, SuperAdmin selon le contexte applicatif) ;
+    \item \textbf{Patient} ;
+    \item \textbf{Exam} ;
+    \item \textbf{Alert} ;
+    \item \textbf{SupportTicket} (niveau supervision).
+\end{itemize}
+
+Relations essentielles :
+\begin{itemize}
+    \item un Center possede plusieurs Users et plusieurs Patients ;
+    \item un Patient possede plusieurs Exams ;
+    \item un Exam est cree par un User et peut generer zero ou plusieurs Alerts ;
+    \item une Alert est assignee a un Doctor pour traitement ;
+    \item un SupportTicket est suivi par le SuperAdmin.
+\end{itemize}
+
+Cette modelisation clarifie le cycle de vie des donnees medicales, depuis l'acquisition de l'image
+jusqu'au traitement des alertes.
+
+\section{Architecture complete du systeme}
+
+\subsection{Architecture globale}
+L'architecture adoptee est une architecture modulaire multi-composants :
+\begin{itemize}
+    \item \textbf{Frontend Web} : interfaces de connexion, gestion metier et visualisation ;
+    \item \textbf{Backend applicatif} : logique metier, API, securite, persistence ;
+    \item \textbf{Service IA} : inference de grade RD et generation Grad-CAM ;
+    \item \textbf{Service temps reel} : diffusion des notifications et alertes ;
+    \item \textbf{Base de donnees} : stockage des utilisateurs, patients, examens et alertes.
+\end{itemize}
+
+Ce decouplage facilite la maintenance, les tests et l'evolution independante des composants.
+
+\subsection{Architecture detaillee (diagrammes de sequence)}
+Les diagrammes de sequence detaillent les echanges inter-services pour les cas critiques.
+
+\subsubsection*{Sequence 1 : creation d'un examen}
+\begin{enumerate}
+    \item CenterAdmin envoie l'image au Backend ;
+    \item le Backend stocke l'image et appelle le Service IA ;
+    \item le Service IA retourne grade, confiance et heatmap ;
+    \item le Backend enregistre l'examen ;
+    \item si grade >= 3, le Backend cree une alerte ;
+    \item le Service temps reel notifie le Doctor ;
+    \item l'interface met a jour l'etat de maniere immediate.
+\end{enumerate}
+
+\subsubsection*{Sequence 2 : consultation et traitement d'alerte}
+\begin{enumerate}
+    \item le Doctor ouvre la liste des alertes ;
+    \item le Backend retourne les alertes actives ;
+    \item le Doctor consulte le detail d'examen ;
+    \item il valide l'action clinique ;
+    \item l'alerte passe a l'etat resolu avec historisation.
+\end{enumerate}
+
+\subsubsection*{Sequence 3 : supervision plateforme}
+\begin{enumerate}
+    \item le SuperAdmin consulte les indicateurs globaux ;
+    \item le systeme agrege les statistiques multi-centres ;
+    \item le SuperAdmin traite les tickets critiques et incidents ;
+    \item les actions de supervision sont journalisees.
+\end{enumerate}
+
+\section{Conclusion}
+Ce chapitre a presente la conception fonctionnelle et technique de la solution.
+L'analyse des acteurs, la specification des exigences, les diagrammes UML et l'architecture complete
+fournissent un cadre clair pour l'implementation.
+
+La phase suivante peut s'appuyer sur cette conception pour la realisation detaillee,
+les tests d'integration et la validation finale de la plateforme en contexte reel.

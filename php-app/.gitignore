@@ -1,0 +1,33 @@
+# Dependencies
+/vendor/
+
+# Environment files
+.env
+*.env.local
+
+# Uploads (keep structure, ignore content)
+/public/uploads/original/*
+!/public/uploads/original/.gitkeep
+/public/uploads/gradcam/*
+!/public/uploads/gradcam/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+
+# Cache
+/cache/
+*.cache
+
+# Composer
+composer.phar

@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DR screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="app-theme-doctor">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/doctor/dashboard" class="sidebar-brand">
+                    <i class="fas fa-eye"></i>
+                    <span>DR Screening</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">Médecin</div>
+                <ul>
+                    <li class="nav-item">
+                        <a href="/doctor/dashboard" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/doctor/alerts" class="nav-link">
+                            <i class="fas fa-bell"></i>
+                            <span>Alertes</span>
+                            <span class="nav-badge" id="alert-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">Dr. Médecin</div>
+                        <div class="user-role">Ophtalmologue</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline sidebar-logout-btn" data-logout>
+                    <i class="fas fa-sign-out-alt"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <a href="/doctor/dashboard" class="btn btn-outline btn-sm mb-2">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour au tableau de bord
+                    </a>
+                    <h1 class="page-title">Détail de l'examen</h1>
+                    <p class="page-subtitle" id="exam-date">Chargement...</p>
+                    <p class="page-subtitle" id="exam-center" style="margin-top: 0.2rem;">Centre: -</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-primary" id="print-report-btn" type="button">
+                        <i class="fas fa-print"></i>
+                        Imprimer / PDF
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading-state" class="card">
+                <div class="card-body">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <div id="error-state" class="card" style="display: none;">
+                <div class="card-body">
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>Examen non trouvé</h3>
+                        <p>Impossible de charger cet examen.</p>
+                        <a href="/doctor/dashboard" class="btn btn-primary mt-4">Retour</a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exam-content" style="display: none;">
+                <section id="print-report-layout" class="print-report-layout" aria-hidden="true"></section>
+
+                <div class="medical-header-grid mb-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Résultat de l'analyse</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="global-grade-row">
+                                <div>
+                                    <div class="global-grade-final" id="global-grade-final">Grade: -</div>
+                                    <div class="global-grade-value" id="global-grade-text">Type de rétinopathie: -</div>
+                                    <div class="global-grade-confidence" id="global-grade-confidence">Confiance: -</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informations patient</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="patient-info-grid">
+                                <div><span class="med-k">Nom</span><span class="med-v" id="patient-name">-</span></div>
+                                <div><span class="med-k">Dossier</span><span class="med-v" id="patient-mrn">-</span></div>
+                                <div><span class="med-k">Date de naissance</span><span class="med-v" id="patient-dob">-</span></div>
+                                <div><span class="med-k">Genre</span><span class="med-v" id="patient-gender">-</span></div>
+                                <div><span class="med-k">Téléphone</span><span class="med-v" id="patient-phone">-</span></div>
+                                <div><span class="med-k">Email</span><span class="med-v" id="patient-email">-</span></div>
+                            </div>
+                            <div class="medical-history-block">
+                                <div class="medical-history-block-title">Historique médical</div>
+                                <div class="med-v medical-history-text mb-0" id="patient-medical-history">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="eyes-grid" class="eyes-grid mb-6"></div>
+
+                <div class="card mb-6">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-stethoscope"></i> Recommandation clinique</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="clinical-recommendation" class="clinical-rec-container">
+                            <p class="text-muted mb-0">En attente de résultat pour générer une recommandation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="admin-notes-section" class="card mt-6" style="display: none; border-left: 4px solid #ffc107;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-sticky-note"></i> Notes du centre</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="admin-notes-content" class="bg-light p-3 rounded" style="background: #fffbf0 !important; border-left: 3px solid #ffc107;"></div>
+                    </div>
+                </div>
+
+                <div class="card mt-6">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-notes-medical"></i> Rapport médecin</h3>
+                    </div>
+                    <div class="card-body">
+                        <textarea id="doctor-report-notes" class="form-control" rows="3" placeholder="Ajouter une note ou une remarque qui sera incluse dans le rapport imprimé/PDF"></textarea>
+                        <div class="d-flex align-items-center gap-3 mt-3">
+                            <button class="btn btn-success" id="save-report-inline-btn" type="button">
+                                <i class="fas fa-save"></i>
+                                Enregistrer le rapport
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-6">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-list-check"></i> Légende et abréviations</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="exam-legend-line mb-2">
+                            <strong>Légende risque:</strong>
+                            <span class="legend-chip risk-low">Faible</span>
+                            <span class="legend-chip risk-medium">Moyen</span>
+                            <span class="legend-chip risk-high">Fort</span>
+                        </p>
+                        <p class="exam-abbrev-line mb-0">
+                            <strong>Abréviations:</strong>
+                            DR = Rétinopathie diabétique,
+                            RDP = Rétinopathie diabétique proliférante,
+                            RDNP = Rétinopathie diabétique non proliférante,
+                            CSDM = Œdème maculaire diabétique cliniquement significatif.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="image-viewer" class="image-viewer" style="display: none;">
+        <button id="image-viewer-close" class="image-viewer-close" type="button" aria-label="Fermer">
+            <i class="fas fa-times"></i>
+        </button>
+        <button id="image-viewer-prev" class="image-viewer-nav image-viewer-prev" type="button" aria-label="Précédente">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button id="image-viewer-next" class="image-viewer-nav image-viewer-next" type="button" aria-label="Suivante">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <div class="image-viewer-content">
+            <div class="image-viewer-toolbar">
+                <button id="image-viewer-zoom-out" type="button" aria-label="Zoom moins"><i class="fas fa-search-minus"></i></button>
+                <button id="image-viewer-zoom-reset" type="button" aria-label="Réinitialiser zoom"><i class="fas fa-expand"></i></button>
+                <button id="image-viewer-zoom-in" type="button" aria-label="Zoom plus"><i class="fas fa-search-plus"></i></button>
+            </div>
+            <img id="image-viewer-img" src="" alt="Aperçu" />
+            <div id="image-viewer-caption" class="image-viewer-caption"></div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        const EYE_LABELS = {
+            left: "Œil gauche (OG)",
+            right: "Œil droit (OD)",
+            unknown: "Œil non spécifié"
+        };
+
+        const viewerState = {
+            items: [],
+            index: 0,
+            zoom: 1,
+            panX: 0,
+            panY: 0,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0
+        };
+
+        function gradeMeta(grade) {
+            const map = {
+                0: { label: "Aucune rétinopathie diabétique", degree: "Aucune rétinopathie diabétique", cls: "severity-none" },
+                1: { label: "Rétinopathie diabétique non proliférante légère", degree: "Rétinopathie diabétique non proliférante légère", cls: "severity-mild" },
+                2: { label: "Rétinopathie diabétique non proliférante modérée", degree: "Rétinopathie diabétique non proliférante modérée", cls: "severity-moderate" },
+                3: { label: "Rétinopathie diabétique non proliférante sévère", degree: "Rétinopathie diabétique non proliférante sévère", cls: "severity-severe" },
+                4: { label: "Rétinopathie diabétique proliférante", degree: "Rétinopathie diabétique proliférante", cls: "severity-pdr" }
+            };
+            return map[grade] || { label: `Grade ${grade}`, degree: "Classification non disponible", cls: "severity-neutral" };
+        }
+
+        function characteristicMap(grade) {
+            const catalog = [
+                "Microanévrismes",
+                "Exsudats durs",
+                "Hémorragies intrarétiniennes",
+                "Néovascularisation"
+            ];
+
+            const detectedByGrade = {
+                0: [],
+                1: ["Microanévrismes"],
+                2: ["Microanévrismes", "Exsudats durs", "Hémorragies intrarétiniennes"],
+                3: ["Microanévrismes", "Exsudats durs", "Hémorragies intrarétiniennes"],
+                4: ["Microanévrismes", "Exsudats durs", "Hémorragies intrarétiniennes", "Néovascularisation"]
+            };
+
+            const detected = detectedByGrade[grade] || [];
+            const absent = catalog.filter(item => !detected.includes(item));
+            return { detected, absent };
+        }
+
+        function recommendationForGrade(grade) {
+            const recMap = {
+                0: {
+                    priority: "Standard",
+                    delay: "Contrôle dans 12 mois",
+                    actions: [
+                        "Maintenir le dépistage ophtalmologique annuel.",
+                        "Optimiser le contrôle glycémique, tensionnel et lipidique.",
+                        "Consulter plus tôt en cas de baisse visuelle ou symptômes nouveaux."
+                    ],
+                    warningSigns: [
+                        "Baisse de vision récente",
+                        "Vision floue persistante",
+                        "Scotomes ou taches noires"
+                    ],
+                    followUp: [
+                        "Contrôle du fond d'œil dans 12 mois",
+                        "Renforcement hygiène de vie et observance",
+                        "Coordination diabétologue-médecin traitant"
+                    ]
+                },
+                1: {
+                    priority: "Modérée",
+                    delay: "Réévaluation dans 6 à 12 mois",
+                    actions: [
+                        "Programmer un contrôle ophtalmologique rapproché.",
+                        "Renforcer l'éducation thérapeutique (glycémie, HTA, observance).",
+                        "Documenter l'évolution avec fond d'œil comparatif au prochain contrôle."
+                    ],
+                    warningSigns: [
+                        "Aggravation de la vision entre deux contrôles",
+                        "Métamorphopsies",
+                        "Douleur oculaire inhabituelle"
+                    ],
+                    followUp: [
+                        "Contrôle ophtalmologique dans 6 mois",
+                        "Évaluation OCT selon disponibilité",
+                        "Réévaluation clinique en cas de symptôme nouveau"
+                    ]
+                },
+                2: {
+                    priority: "Élevée",
+                    delay: "Avis spécialisé sous 1 à 3 mois",
+                    actions: [
+                        "Adresser le patient en ophtalmologie pour bilan complet (OCT/fond d'œil).",
+                        "Vérifier l'acuité visuelle et rechercher un œdème maculaire.",
+                        "Planifier un suivi rapproché selon avis spécialisé."
+                    ],
+                    warningSigns: [
+                        "Baisse d'acuité visuelle rapide",
+                        "Diminution de contraste",
+                        "Apparition de corps flottants"
+                    ],
+                    followUp: [
+                        "Consultation spécialisée sous 1 à 3 mois",
+                        "Bilan métabolique et cardiovasculaire renforcé",
+                        "Contrôle structuré avant prochain dépistage"
+                    ]
+                },
+                3: {
+                    priority: "Très élevée",
+                    delay: "Évaluation rapide sous 2 à 4 semaines",
+                    actions: [
+                        "Orientation prioritaire vers une consultation ophtalmologique spécialisée.",
+                        "Évaluer le risque de progression et les indications de traitement laser/intravitréen.",
+                        "Assurer une coordination active avec diabétologue et médecin traitant."
+                    ],
+                    warningSigns: [
+                        "Baisse visuelle marquée",
+                        "Hémorragie vitréenne suspectée",
+                        "Signes d'œdème maculaire"
+                    ],
+                    followUp: [
+                        "Évaluation spécialisée sous 2 à 4 semaines",
+                        "Discussion thérapeutique laser/injections",
+                        "Plan de surveillance rapprochée"
+                    ]
+                },
+                4: {
+                    priority: "Urgente",
+                    delay: "Prise en charge immédiate (< 7 jours)",
+                    actions: [
+                        "Référer en urgence en ophtalmologie rétinienne.",
+                        "Évaluer sans délai les complications menaçant la vision.",
+                        "Mettre en place un plan thérapeutique spécialisé et un suivi strict."
+                    ],
+                    warningSigns: [
+                        "Perte visuelle brutale",
+                        "Hémorragie intra-oculaire suspectée",
+                        "Douleur ou rougeur importante"
+                    ],
+                    followUp: [
+                        "Évaluation en urgence (< 7 jours)",
+                        "Traitement spécialisé immédiat selon avis rétine",
+                        "Coordination et suivi strict multidisciplinaire"
+                    ]
+                }
+            };
+            return recMap[grade] || {
+                priority: "À définir",
+                delay: "Selon évaluation clinique",
+                actions: [
+                    "Compléter l'évaluation ophtalmologique.",
+                    "Vérifier la qualité des images et recontrôler si nécessaire.",
+                    "Adapter la conduite à tenir au contexte clinique du patient."
+                ],
+                warningSigns: [
+                    "Symptôme visuel nouveau",
+                    "Baisse d'acuité",
+                    "Douleur oculaire"
+                ],
+                followUp: [
+                    "Confirmer le grade avec examen spécialisé",
+                    "Répétition de l'imagerie si qualité insuffisante",
+                    "Fixer un délai de suivi documenté"
+                ]
+            };
+        }
+
+        function recommendationHtml(rec) {
+            const actionsHtml = rec.actions.map(action => `<li>${action}</li>`).join('');
+            const warningHtml = rec.warningSigns.map(item => `<li>${item}</li>`).join('');
+            const followUpHtml = rec.followUp.map(item => `<li>${item}</li>`).join('');
+            return `
+                <div class="clinical-rec-box">
+                    <div class="clinical-rec-summary">
+                        <div class="clinical-rec-chip">
+                            <span class="clinical-rec-label">Priorité</span>
+                            <strong>${rec.priority}</strong>
+                        </div>
+                        <div class="clinical-rec-chip">
+                            <span class="clinical-rec-label">Délai conseillé</span>
+                            <strong>${rec.delay}</strong>
+                        </div>
+                    </div>
+
+                    <div class="clinical-rec-grid">
+                        <section class="clinical-rec-panel">
+                            <h5 class="clinical-rec-title"><i class="fas fa-list-check"></i> Actions recommandées</h5>
+                            <ul class="clinical-rec-list">${actionsHtml}</ul>
+                        </section>
+                        <section class="clinical-rec-panel">
+                            <h5 class="clinical-rec-title"><i class="fas fa-triangle-exclamation"></i> Signes d'alerte</h5>
+                            <ul class="clinical-rec-list">${warningHtml}</ul>
+                        </section>
+                        <section class="clinical-rec-panel clinical-rec-panel-wide">
+                            <h5 class="clinical-rec-title"><i class="fas fa-calendar-check"></i> Plan de suivi</h5>
+                            <ul class="clinical-rec-list">${followUpHtml}</ul>
+                        </section>
+                    </div>
+
+                    <p class="clinical-rec-note mb-0">Ces recommandations assistent la priorisation. La validation clinique finale par un ophtalmologue reste indispensable.</p>
+                </div>
+            `;
+        }
+
+        function renderMedicalHistorySummary(rawHistory) {
+            const value = String(rawHistory || '').trim();
+            if (!value || /^aucun antécédent renseigné$/i.test(value)) {
+                return '<p class="med-v medical-history-text mb-0">Aucun antécédent renseigné</p>';
+            }
+
+            const entries = value
+                .split(/[\n|;,]+/)
+                .map((item) => item
+                    .replace(/^[•\-*]\s*/g, '')
+                    .replace(/^antécédents standards\s*:\s*/i, '')
+                    .replace(/^autres complications\s*:\s*/i, '')
+                    .replace(/^notes\s*:\s*/i, '')
+                    .trim())
+                .filter(Boolean);
+
+            const standardKeywords = [
+                /diab[èe]te/i,
+                /hyperglyc/i,
+                /hta/i,
+                /hypertension/i,
+                /dyslipid/i,
+                /n[ée]phropath/i,
+                /r[ée]tinopath/i,
+                /glaucome/i,
+                /cataracte/i,
+                /insuffisance r[ée]nale/i
+            ];
+
+            const standardItems = entries.filter((item) => standardKeywords.some((pattern) => pattern.test(item)));
+            const otherItems = entries.filter((item) => !standardItems.includes(item));
+
+            return `
+                <div class="medical-history-summary">
+                    <div class="medical-history-group">
+                        <div class="medical-history-group-title">Antécédents standards</div>
+                        ${standardItems.length
+                            ? `<div class="medical-history-pill-list">${standardItems.map((item) => `<span class="medical-history-pill">${item}</span>`).join('')}</div>`
+                            : '<div class="medical-history-empty">Aucun antécédent standard enregistré</div>'}
+                    </div>
+                    <div class="medical-history-group">
+                        <div class="medical-history-group-title">Autres complications</div>
+                        ${otherItems.length
+                            ? `<div class="medical-history-pill-list">${otherItems.map((item) => `<span class="medical-history-pill medical-history-pill-muted">${item}</span>`).join('')}</div>`
+                            : '<div class="medical-history-empty">Aucune autre complication renseignée</div>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function additionalLesionsByGrade(grade) {
+            const low = { label: 'Absent', cls: 'lesion-low' };
+            const mid = { label: 'Possible', cls: 'lesion-medium' };
+            const high = { label: 'Présent', cls: 'lesion-high' };
+
+            if (!Number.isFinite(grade) || grade < 0) {
+                return {
+                    'Exsudats cotonneux': mid,
+                    'Anomalies veineuses et microvasculaires': mid,
+                    'Néovaisseaux': mid,
+                    'CSDME': mid
+                };
+            }
+
+            if (grade === 0) {
+                return {
+                    'Exsudats cotonneux': low,
+                    'Anomalies veineuses et microvasculaires': low,
+                    'Néovaisseaux': low,
+                    'CSDME': { label: 'Non suspecté', cls: 'lesion-low' }
+                };
+            }
+
+            if (grade === 1) {
+                return {
+                    'Exsudats cotonneux': low,
+                    'Anomalies veineuses et microvasculaires': low,
+                    'Néovaisseaux': low,
+                    'CSDME': { label: 'Non suspecté', cls: 'lesion-low' }
+                };
+            }
+
+            if (grade === 2) {
+                return {
+                    'Exsudats cotonneux': mid,
+                    'Anomalies veineuses et microvasculaires': mid,
+                    'Néovaisseaux': low,
+                    'CSDME': { label: 'Suspecté', cls: 'lesion-medium' }
+                };
+            }
+
+            if (grade === 3) {
+                return {
+                    'Exsudats cotonneux': high,
+                    'Anomalies veineuses et microvasculaires': high,
+                    'Néovaisseaux': mid,
+                    'CSDME': { label: 'Suspecté', cls: 'lesion-high' }
+                };
+            }
+
+            return {
+                'Exsudats cotonneux': high,
+                'Anomalies veineuses et microvasculaires': high,
+                'Néovaisseaux': high,
+                'CSDME': { label: 'Suspecté', cls: 'lesion-high' }
+            };
+        }
+
+        function eyeCard(eye) {
+            const meta = gradeMeta(eye.grade);
+            const chars = characteristicMap(eye.grade);
+            const confidence = typeof eye.confidence === 'number' ? eye.confidence.toFixed(1) : '-';
+            const original = eye.image_display_url || eye.image_preview_url || eye.image_url || '';
+            const originalDownload = eye.image_url || '';
+            const heatmap = eye.heatmap_url || eye.image_preview_url || eye.image_url || '';
+
+            const detectedHtml = chars.detected.length
+                ? chars.detected.map(item => `<li><i class=\"fas fa-check-circle\"></i>${item}</li>`).join('')
+                : `<li><i class=\"fas fa-check-circle\"></i>Aucune lésion observée</li>`;
+
+            const absentHtml = chars.absent.length
+                ? chars.absent.map(item => `<li><i class=\"fas fa-times-circle\"></i>${item}</li>`).join('')
+                : `<li><i class=\"fas fa-minus-circle\"></i>Aucune</li>`;
+            const extraLesions = additionalLesionsByGrade(eye.grade);
+            const extraLesionsHtml = Object.entries(extraLesions)
+                .map(([name, info]) => `<span class="lesion-pill ${info.cls}"><strong>${name}</strong>: ${info.label}</span>`)
+                .join('');
+
+            return `
+                <section class="eye-card">
+                    <header class="eye-card-head">
+                        <div>
+                            <h3>${EYE_LABELS[eye.eye_type] || eye.eye_type}</h3>
+                        </div>
+                        <span class="severity-badge ${meta.cls}">${meta.label}</span>
+                    </header>
+
+                    <div class="eye-metrics">
+                        <div><span>Grade</span><strong>${eye.grade}</strong></div>
+                        <div><span>Confiance</span><strong>${confidence}%</strong></div>
+                    </div>
+
+                    <div class="eye-images-grid">
+                        <div class="eye-image-panel">
+                            <div class="eye-image-title">Image originale</div>
+                            <img class="clickable-eye-image" data-viewer-title="Image originale - ${EYE_LABELS[eye.eye_type] || eye.eye_type}" src="${original}" alt="Image originale ${EYE_LABELS[eye.eye_type] || eye.eye_type}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            ${eye.image_url ? `<div style="margin-top:6px"><a href="${eye.image_url}" target="_blank" rel="noopener">Télécharger l'original</a></div>` : ''}
+                            <div class="eye-image-fallback">Image indisponible</div>
+                        </div>
+                        <div class="eye-image-panel">
+                            <div class="eye-image-title">Heatmap Grad-CAM</div>
+                            <img class="clickable-eye-image" data-viewer-title="Heatmap Grad-CAM - ${EYE_LABELS[eye.eye_type] || eye.eye_type}" src="${heatmap}?t=${Date.now()}" alt="Heatmap ${EYE_LABELS[eye.eye_type] || eye.eye_type}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="eye-image-fallback">Heatmap indisponible</div>
+                        </div>
+                    </div>
+
+                    <div class="char-grid">
+                        <div class="char-card detected">
+                            <h4><i class="fas fa-microscope"></i> Lésions observées</h4>
+                            <ul>${detectedHtml}</ul>
+                        </div>
+                        <div class="char-card absent">
+                            <h4><i class="fas fa-shield-alt"></i> Lésions absentes</h4>
+                            <ul>${absentHtml}</ul>
+                        </div>
+                    </div>
+
+                    <div class="extra-lesions-block">
+                        <h4><i class="fas fa-layer-group"></i> Lésions complémentaires (Grad-CAM)</h4>
+                        <div class="extra-lesions-list">${extraLesionsHtml}</div>
+                    </div>
+                </section>
+            `;
+        }
+
+        function printCellValue(value, fallback = '-') {
+            const safeValue = value === undefined || value === null || String(value).trim() === ''
+                ? fallback
+                : String(value);
+            return safeValue
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function waitForPrintImages(container) {
+            const images = Array.from(container.querySelectorAll('img'));
+            if (!images.length) return;
+
+            await Promise.all(images.map((img) => {
+                if (img.complete && img.naturalWidth > 0) {
+                    return Promise.resolve();
+                }
+
+                return new Promise((resolve) => {
+                    img.addEventListener('load', resolve, { once: true });
+                    img.addEventListener('error', resolve, { once: true });
+                });
+            }));
+        }
+
+        function drAbbreviationForGrade(grade) {
+            const map = {
+                0: 'Sans DR',
+                1: 'RDNP-L',
+                2: 'RDNP-M',
+                3: 'RDNP-S',
+                4: 'RDP'
+            };
+            return map[grade] || '-';
+        }
+
+        function severityClassForGrade(grade) {
+            if (!Number.isFinite(grade) || grade < 0) return 'severity-unknown';
+            if (grade === 0) return 'severity-low';
+            if (grade <= 2) return 'severity-medium';
+            return 'severity-high';
+        }
+
+        function severityLabelForGrade(grade) {
+            if (!Number.isFinite(grade) || grade < 0) return 'N/A';
+            if (grade === 0) return 'Faible';
+            if (grade <= 2) return 'Moyenne';
+            return 'Élevée';
+        }
+
+        function severityChipHtml(eye) {
+            if (!eye || !Number.isFinite(eye.grade)) {
+                return '<span class="print-severity-chip severity-unknown">N/A</span>';
+            }
+            const cssClass = severityClassForGrade(eye.grade);
+            const grade = printCellValue(`G${eye.grade}`);
+            const label = printCellValue(severityLabelForGrade(eye.grade));
+            return `<span class="print-severity-chip ${cssClass}">${grade} - ${label}</span>`;
+        }
+
+        function buildPrintReport(exam, eyes, worstGrade, doctorNotes = '') {
+            const patient = exam.patient || {};
+            const leftEye = eyes.find((eye) => eye.eye_type === 'left');
+            const rightEye = eyes.find((eye) => eye.eye_type === 'right');
+            const analyzedEyes = eyes.filter((eye) => Number.isFinite(eye.grade) && eye.grade >= 0);
+            const worstEye = analyzedEyes.reduce((best, current) => {
+                if (!best) return current;
+                if (current.grade > best.grade) return current;
+                return best;
+            }, null);
+            const finalGradeValue = Number.isFinite(worstGrade) && worstGrade >= 0 ? worstGrade : '-';
+            const finalDrType = Number.isFinite(worstGrade) && worstGrade >= 0 ? gradeMeta(worstGrade).label : 'En attente';
+            const finalConfidence = worstEye && Number.isFinite(worstEye.confidence)
+                ? `${worstEye.confidence.toFixed(1)}%`
+                : '-';
+            // Use preview URLs for print report display (DICOM files converted to JPEG)
+            const leftOriginal = leftEye && (leftEye.image_display_url || leftEye.image_url) ? `${leftEye.image_display_url || leftEye.image_url}` : '';
+            const rightOriginal = rightEye && (rightEye.image_display_url || rightEye.image_url) ? `${rightEye.image_display_url || rightEye.image_url}` : '';
+            const leftHeatmap = leftEye && (leftEye.heatmap_url || leftEye.image_url) ? `${leftEye.heatmap_url || leftEye.image_url}?t=${Date.now()}` : '';
+            const rightHeatmap = rightEye && (rightEye.heatmap_url || rightEye.image_url) ? `${rightEye.heatmap_url || rightEye.image_url}?t=${Date.now()}` : '';
+
+            const leftChars = leftEye ? characteristicMap(leftEye.grade) : { detected: [], absent: [] };
+            const rightChars = rightEye ? characteristicMap(rightEye.grade) : { detected: [], absent: [] };
+
+            const leftExtra = leftEye ? additionalLesionsByGrade(leftEye.grade) : {};
+            const rightExtra = rightEye ? additionalLesionsByGrade(rightEye.grade) : {};
+
+            const leftExtraText = Object.entries(leftExtra).map(([key, info]) => `${key}: ${info.label}`).join(', ');
+            const rightExtraText = Object.entries(rightExtra).map(([key, info]) => `${key}: ${info.label}`).join(', ');
+
+            const recommendation = recommendationForGrade(worstGrade);
+            const recommendationText = [
+                `Priorité: ${recommendation.priority}`,
+                `Délai conseillé: ${recommendation.delay}`,
+                ...recommendation.actions
+            ].join(' | ');
+
+            const createdAt = exam.created_at ? DateFormat.formatDateTime(exam.created_at) : '-';
+            const centerName = (exam.center && exam.center.name) || exam.center_name || '-';
+            const notes = String(doctorNotes || '').trim();
+            const medicalHistory = String(patient.medical_history || '').trim();
+            const medicalHistoryBlock = medicalHistory && !/^aucun antécédent renseigné$/i.test(medicalHistory)
+                ? `
+                <div class="print-recommendation-box">
+                    <h4>Historique médical</h4>
+                    <p>${printCellValue(medicalHistory).replace(/\n/g, '<br>')}</p>
+                </div>
+            `
+                : '';
+
+            return `
+                <div class="print-report-header">
+                    <div class="print-report-logo">DR screening</div>
+                </div>
+
+                <div class="print-patient-grid">
+                    <div><span>Nom patient</span><strong>${printCellValue(`${patient.first_name || ''} ${patient.last_name || ''}`.trim())}</strong></div>
+                    <div><span>Dossier</span><strong>${printCellValue(patient.medical_record_number)}</strong></div>
+                    <div><span>Date de naissance</span><strong>${printCellValue(DateFormat.format(patient.birth_date))}</strong></div>
+                    <div><span>Genre</span><strong>${printCellValue(patient.gender === 'M' ? 'Masculin' : (patient.gender === 'F' ? 'Féminin' : '-'))}</strong></div>
+                    <div><span>Date examen</span><strong>${printCellValue(createdAt)}</strong></div>
+                    <div><span>Centre</span><strong>${printCellValue(centerName)}</strong></div>
+                </div>
+
+                <div class="print-global-summary">
+                    <div><span>Grade final</span><strong>${printCellValue(finalGradeValue)}</strong></div>
+                    <div><span>Confiance globale</span><strong>${printCellValue(finalConfidence)}</strong></div>
+                    <div><span>Type DR final</span><strong>${printCellValue(finalDrType)}</strong></div>
+                </div>
+
+                <table class="print-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Critère</th>
+                            <th>OG</th>
+                            <th>OD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Gravité</td>
+                            <td>${severityChipHtml(leftEye)}</td>
+                            <td>${severityChipHtml(rightEye)}</td>
+                        </tr>
+                        <tr>
+                            <td>Conf.</td>
+                            <td>${printCellValue(leftEye && Number.isFinite(leftEye.confidence) ? `${leftEye.confidence.toFixed(1)}%` : '-')}</td>
+                            <td>${printCellValue(rightEye && Number.isFinite(rightEye.confidence) ? `${rightEye.confidence.toFixed(1)}%` : '-')}</td>
+                        </tr>
+                        <tr>
+                            <td>Type DR</td>
+                            <td>${printCellValue(leftEye ? drAbbreviationForGrade(leftEye.grade) : '-')}</td>
+                            <td>${printCellValue(rightEye ? drAbbreviationForGrade(rightEye.grade) : '-')}</td>
+                        </tr>
+                        <tr>
+                            <td>Lés. obs.</td>
+                            <td>${printCellValue(leftChars.detected.length ? leftChars.detected.join(', ') : 'Aucune lésion observée')}</td>
+                            <td>${printCellValue(rightChars.detected.length ? rightChars.detected.join(', ') : 'Aucune lésion observée')}</td>
+                        </tr>
+                        <tr>
+                            <td>Lés. abs.</td>
+                            <td>${printCellValue(leftChars.absent.length ? leftChars.absent.join(', ') : 'Aucune')}</td>
+                            <td>${printCellValue(rightChars.absent.length ? rightChars.absent.join(', ') : 'Aucune')}</td>
+                        </tr>
+                        <tr>
+                            <td>Lés. compl.</td>
+                            <td>${printCellValue(leftExtraText || '-')}</td>
+                            <td>${printCellValue(rightExtraText || '-')}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="print-images-grid">
+                    <div class="print-eye-column">
+                        <h5>OG</h5>
+                        <div class="print-image-block">
+                            <div class="print-image-label">Image originale</div>
+                            ${leftOriginal
+                                ? `<img src="${leftOriginal}" alt="Image originale OG">`
+                                : '<div class="print-image-fallback">Image originale</div>'}
+                        </div>
+                        <div class="print-image-block">
+                            <div class="print-image-label">Heatmap Grad-CAM</div>
+                            ${leftHeatmap
+                                ? `<img src="${leftHeatmap}" alt="Heatmap Grad-CAM OG">`
+                                : '<div class="print-image-fallback">Heatmap Grad-CAM</div>'}
+                        </div>
+                    </div>
+                    <div class="print-eye-column">
+                        <h5>OD</h5>
+                        <div class="print-image-block">
+                            <div class="print-image-label">Image originale</div>
+                            ${rightOriginal
+                                ? `<img src="${rightOriginal}" alt="Image originale OD">`
+                                : '<div class="print-image-fallback">Image originale</div>'}
+                        </div>
+                        <div class="print-image-block">
+                            <div class="print-image-label">Heatmap Grad-CAM</div>
+                            ${rightHeatmap
+                                ? `<img src="${rightHeatmap}" alt="Heatmap Grad-CAM OD">`
+                                : '<div class="print-image-fallback">Heatmap Grad-CAM</div>'}
+                        </div>
+                    </div>
+                </div>
+
+                ${medicalHistoryBlock}
+
+                <div class="print-recommendation-box">
+                    <h4>Recommandation clinique</h4>
+                    <p>${printCellValue(recommendationText)}</p>
+                </div>
+
+                ${notes ? `
+                    <div class="print-recommendation-box print-doctor-note-box">
+                        <h4>Rapport médecin</h4>
+                        <p class="print-doctor-note-content">${printCellValue(notes).replace(/\n/g, '<br>')}</p>
+                    </div>
+                ` : ''}
+
+                <div class="print-report-footer">
+                    <p><strong>Légende:</strong> Faible / Moyen / Fort selon le niveau de risque.</p>
+                    <p><strong>Abréviations:</strong> DR = Rétinopathie diabétique, RDP = Rétinopathie diabétique proliférante, RDNP = Rétinopathie diabétique non proliférante, CSDM = Œdème maculaire diabétique cliniquement significatif.</p>
+                </div>
+            `;
+        }
+
+        async function loadAlertCount() {
+            try {
+                const response = await API.get('/doctor/alerts/count');
+                if (response && response.success) {
+                    const badge = document.getElementById('alert-badge');
+                    badge.textContent = response.data.unread;
+                    badge.style.display = response.data.unread > 0 ? 'inline' : 'none';
+                }
+            } catch (_) {}
+        }
+
+        function renderExam(exam) {
+            const patient = exam.patient || {};
+            document.getElementById('exam-date').textContent = `Examen du ${DateFormat.formatDateTime(exam.created_at)}`;
+            document.getElementById('exam-center').textContent = `Centre: ${(exam.center && exam.center.name) || exam.center_name || 'Centre non précisé'}`;
+            document.getElementById('patient-name').textContent = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || '-';
+            document.getElementById('patient-mrn').textContent = patient.medical_record_number || '-';
+            document.getElementById('patient-dob').textContent = DateFormat.format(patient.birth_date);
+            document.getElementById('patient-gender').textContent = patient.gender === 'M' ? 'Masculin' : (patient.gender === 'F' ? 'Féminin' : '-');
+            document.getElementById('patient-phone').textContent = patient.phone || '-';
+            document.getElementById('patient-email').textContent = patient.email || '-';
+            document.getElementById('patient-medical-history').innerHTML = renderMedicalHistorySummary(patient.medical_history || '');
+            const notesInput = document.getElementById('doctor-report-notes');
+            if (notesInput) {
+                notesInput.value = exam.doctor_report_notes || '';
+            }
+
+            // Display admin notes if they exist
+            const adminNotesSection = document.getElementById('admin-notes-section');
+            if (exam.notes && String(exam.notes).trim()) {
+                adminNotesSection.style.display = 'block';
+                const notesContent = document.getElementById('admin-notes-content');
+                notesContent.textContent = exam.notes;
+            } else {
+                adminNotesSection.style.display = 'none';
+            }
+
+            const eyes = [];
+            eyes.push({
+                eye_type: exam.eye_type || 'unknown',
+                grade: Number(exam.grade),
+                confidence: Number(exam.confidence || 0),
+                image_url: exam.image_url,
+                image_preview_url: exam.image_preview_url || null,
+                image_display_url: exam.image_preview_url || `/api/exams/${exam.id}/preview-image`,
+                heatmap_url: exam.heatmap_url
+            });
+
+            if (exam.paired_exam && exam.paired_exam.exists) {
+                eyes.push({
+                    eye_type: exam.paired_exam.eye_type || 'unknown',
+                    grade: Number(exam.paired_exam.grade),
+                    confidence: Number(exam.paired_exam.confidence || 0),
+                    image_url: exam.paired_exam.image_url,
+                    image_preview_url: exam.paired_exam.image_preview_url || null,
+                    image_display_url: exam.paired_exam.image_preview_url || `/api/exams/${exam.paired_exam.id || exam.id}/preview-image`,
+                    heatmap_url: exam.paired_exam.heatmap_url
+                });
+            }
+
+            window.__lastExamData = exam;
+            window.__lastExamEyes = eyes;
+
+            const analyzedEyes = eyes.filter(e => !Number.isNaN(e.grade) && Number.isFinite(e.grade) && e.grade >= 0);
+
+            if (analyzedEyes.length === 0) {
+                document.getElementById('global-grade-final').textContent = 'Grade: En attente';
+                document.getElementById('global-grade-text').textContent = 'Type de rétinopathie: Analyse en cours';
+                document.getElementById('global-grade-confidence').textContent = 'Confiance: -';
+                document.getElementById('clinical-recommendation').innerHTML = '<p class="text-muted mb-0">En attente de résultat pour générer une recommandation.</p>';
+
+                const printLayoutPending = document.getElementById('print-report-layout');
+                if (printLayoutPending) {
+                    const doctorNotes = (document.getElementById('doctor-report-notes')?.value || '').trim();
+                    printLayoutPending.innerHTML = buildPrintReport(exam, eyes, -1, doctorNotes);
+                }
+
+                const gridPending = document.getElementById('eyes-grid');
+                gridPending.innerHTML = eyes.map(eyeCard).join('');
+                bindImageViewer();
+                return;
+            }
+
+            const worst = analyzedEyes.reduce((acc, e) => Math.max(acc, e.grade), 0);
+            const worstEye = analyzedEyes.reduce((best, current) => {
+                if (!best) return current;
+                if (current.grade > best.grade) return current;
+                return best;
+            }, null);
+            const worstMeta = gradeMeta(worst);
+            document.getElementById('global-grade-final').textContent = `Grade: ${worst}`;
+            document.getElementById('global-grade-text').textContent = `Type de rétinopathie: ${worstMeta.label}`;
+            document.getElementById('global-grade-confidence').textContent = `Confiance: ${worstEye ? (worstEye.confidence || 0).toFixed(1) : '-'}%`;
+            document.getElementById('clinical-recommendation').innerHTML = recommendationHtml(recommendationForGrade(worst));
+
+            const grid = document.getElementById('eyes-grid');
+            const printLayout = document.getElementById('print-report-layout');
+            if (eyes.length === 1) {
+                grid.innerHTML = eyeCard(eyes[0]) + `
+                    <section class="eye-card eye-empty">
+                        <header class="eye-card-head">
+                            <div>
+                                <h3>Œil opposé</h3>
+                                <p>Aucun examen disponible</p>
+                            </div>
+                            <span class="severity-badge severity-neutral">En attente</span>
+                        </header>
+                        <p class="text-muted mb-0">Ajoutez l'autre œil pour visualiser un comparatif complet OD/OG.</p>
+                    </section>
+                `;
+            } else {
+                eyes.sort((a, b) => (a.eye_type > b.eye_type ? 1 : -1));
+                grid.innerHTML = eyes.map(eyeCard).join('');
+            }
+
+            if (printLayout) {
+                const doctorNotes = (document.getElementById('doctor-report-notes')?.value || '').trim();
+                printLayout.innerHTML = buildPrintReport(exam, eyes, worst, doctorNotes);
+            }
+
+            bindImageViewer();
+        }
+
+        function bindImageViewer() {
+            const viewer = document.getElementById('image-viewer');
+            const viewerImg = document.getElementById('image-viewer-img');
+            const viewerCaption = document.getElementById('image-viewer-caption');
+            const viewerContent = document.querySelector('.image-viewer-content');
+            const closeBtn = document.getElementById('image-viewer-close');
+            const prevBtn = document.getElementById('image-viewer-prev');
+            const nextBtn = document.getElementById('image-viewer-next');
+            const zoomInBtn = document.getElementById('image-viewer-zoom-in');
+            const zoomOutBtn = document.getElementById('image-viewer-zoom-out');
+            const zoomResetBtn = document.getElementById('image-viewer-zoom-reset');
+
+            viewerState.items = Array.from(document.querySelectorAll('.clickable-eye-image'));
+
+            const applyTransform = () => {
+                viewerImg.style.transform = `translate(${viewerState.panX}px, ${viewerState.panY}px) scale(${viewerState.zoom})`;
+                viewerImg.style.cursor = viewerState.zoom > 1 ? (viewerState.isDragging ? 'grabbing' : 'grab') : 'zoom-in';
+            };
+
+            const resetView = () => {
+                viewerState.zoom = 1;
+                viewerState.panX = 0;
+                viewerState.panY = 0;
+                viewerState.isDragging = false;
+                applyTransform();
+            };
+
+            const setZoom = (newZoom) => {
+                viewerState.zoom = Math.max(1, Math.min(5, newZoom));
+                if (viewerState.zoom === 1) {
+                    viewerState.panX = 0;
+                    viewerState.panY = 0;
+                }
+                applyTransform();
+            };
+
+            const renderViewer = () => {
+                const current = viewerState.items[viewerState.index];
+                if (!current) return;
+                viewerImg.src = current.src;
+                const baseCaption = current.dataset.viewerTitle || current.alt || '';
+                viewerCaption.textContent = `${baseCaption} · Molette: zoom · Glisser: déplacer · Double-clic: zoom rapide`;
+                resetView();
+                prevBtn.disabled = viewerState.items.length <= 1;
+                nextBtn.disabled = viewerState.items.length <= 1;
+            };
+
+            const openViewerAt = (index) => {
+                viewerState.index = index;
+                renderViewer();
+                viewer.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeViewer = () => {
+                viewer.style.display = 'none';
+                viewerImg.src = '';
+                viewerCaption.textContent = '';
+                resetView();
+                document.body.style.overflow = '';
+            };
+
+            viewerState.items.forEach((img, index) => {
+                img.style.cursor = 'zoom-in';
+                img.addEventListener('click', () => {
+                    openViewerAt(index);
+                });
+            });
+
+            prevBtn.onclick = () => {
+                if (!viewerState.items.length) return;
+                viewerState.index = (viewerState.index - 1 + viewerState.items.length) % viewerState.items.length;
+                renderViewer();
+            };
+
+            nextBtn.onclick = () => {
+                if (!viewerState.items.length) return;
+                viewerState.index = (viewerState.index + 1) % viewerState.items.length;
+                renderViewer();
+            };
+
+            zoomInBtn.onclick = () => {
+                setZoom(viewerState.zoom + 0.25);
+            };
+
+            zoomOutBtn.onclick = () => {
+                setZoom(viewerState.zoom - 0.25);
+            };
+
+            zoomResetBtn.onclick = () => {
+                resetView();
+            };
+
+            viewerImg.onwheel = (event) => {
+                event.preventDefault();
+                const delta = event.deltaY < 0 ? 0.2 : -0.2;
+                setZoom(viewerState.zoom + delta);
+            };
+
+            viewerImg.ondblclick = () => {
+                if (viewerState.zoom === 1) {
+                    setZoom(2.2);
+                } else {
+                    resetView();
+                }
+            };
+
+            viewerImg.onmousedown = (event) => {
+                if (viewerState.zoom <= 1) return;
+                event.preventDefault();
+                viewerState.isDragging = true;
+                viewerState.dragStartX = event.clientX - viewerState.panX;
+                viewerState.dragStartY = event.clientY - viewerState.panY;
+                applyTransform();
+            };
+
+            viewerContent.onmousemove = (event) => {
+                if (!viewerState.isDragging) return;
+                viewerState.panX = event.clientX - viewerState.dragStartX;
+                viewerState.panY = event.clientY - viewerState.dragStartY;
+                applyTransform();
+            };
+
+            const stopDragging = () => {
+                if (!viewerState.isDragging) return;
+                viewerState.isDragging = false;
+                applyTransform();
+            };
+
+            viewerContent.onmouseup = stopDragging;
+            viewerContent.onmouseleave = stopDragging;
+            viewerImg.onmouseup = stopDragging;
+
+            closeBtn.onclick = closeViewer;
+            viewer.onclick = (e) => {
+                if (e.target === viewer) closeViewer();
+            };
+
+            document.onkeydown = (e) => {
+                if (e.key === 'Escape' && viewer.style.display === 'flex') {
+                    closeViewer();
+                } else if (e.key === 'ArrowLeft' && viewer.style.display === 'flex') {
+                    prevBtn.click();
+                } else if (e.key === 'ArrowRight' && viewer.style.display === 'flex') {
+                    nextBtn.click();
+                }
+            };
+        }
+
+        async function loadExam() {
+            const pathParts = window.location.pathname.split('/');
+            const examId = pathParts[pathParts.length - 1];
+
+            try {
+                const response = await API.get(`/doctor/exams/${examId}`);
+                if (!response || !response.success) {
+                    throw new Error('Examen non trouve');
+                }
+
+                renderExam(response.data);
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('exam-content').style.display = 'block';
+            } catch (_) {
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('error-state').style.display = 'block';
+            }
+        }
+
+        async function saveDoctorReport() {
+            const pathParts = window.location.pathname.split('/');
+            const examId = pathParts[pathParts.length - 1];
+            const notesInput = document.getElementById('doctor-report-notes');
+            const saveButton = document.getElementById('save-report-btn');
+            const inlineSaveButton = document.getElementById('save-report-inline-btn');
+
+            if (!examId || !notesInput) return;
+
+            const doctor_report_notes = notesInput.value.trim();
+
+            try {
+                if (saveButton) saveButton.disabled = true;
+                if (inlineSaveButton) inlineSaveButton.disabled = true;
+
+                const response = await API.put(`/doctor/exams/${examId}/report`, {
+                    doctor_report_notes
+                });
+
+                if (!response || !response.success) {
+                    throw new Error('Erreur lors de l\'enregistrement');
+                }
+
+                if (window.__lastExamData) {
+                    window.__lastExamData.doctor_report_notes = response.data.doctor_report_notes;
+                }
+                Toast.show('Rapport médecin enregistré', 'success');
+            } catch (error) {
+                console.error(error);
+                Toast.show('Impossible d\'enregistrer le rapport', 'danger');
+            } finally {
+                if (saveButton) saveButton.disabled = false;
+                if (inlineSaveButton) inlineSaveButton.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.checkRole('doctor')) return;
+            const user = Auth.getUser();
+            document.querySelector('.user-name').textContent = `Dr. ${user.first_name || ''} ${user.last_name || ''}`.trim();
+            document.getElementById('save-report-inline-btn').addEventListener('click', saveDoctorReport);
+            document.getElementById('print-report-btn').addEventListener('click', async () => {
+                const printLayout = document.getElementById('print-report-layout');
+                if (printLayout && window.__lastExamData && Array.isArray(window.__lastExamEyes)) {
+                    const analyzedEyes = window.__lastExamEyes.filter(e => !Number.isNaN(e.grade) && Number.isFinite(e.grade) && e.grade >= 0);
+                    const worst = analyzedEyes.length ? analyzedEyes.reduce((acc, e) => Math.max(acc, e.grade), 0) : -1;
+                    const doctorNotes = (document.getElementById('doctor-report-notes')?.value || '').trim();
+                    printLayout.innerHTML = buildPrintReport(window.__lastExamData, window.__lastExamEyes, worst, doctorNotes);
+                    await waitForPrintImages(printLayout);
+                }
+                const previousTitle = document.title;
+                document.title = 'DR screening';
+                window.print();
+                window.setTimeout(() => {
+                    document.title = previousTitle;
+                }, 300);
+            });
+            await Promise.all([loadAlertCount(), loadExam()]);
+
+            const notesInput = document.getElementById('doctor-report-notes');
+            if (notesInput) {
+                notesInput.addEventListener('input', () => {
+                    if (!window.__lastExamData || !Array.isArray(window.__lastExamEyes)) return;
+                    const analyzedEyes = window.__lastExamEyes.filter(e => !Number.isNaN(e.grade) && Number.isFinite(e.grade) && e.grade >= 0);
+                    const worst = analyzedEyes.length ? analyzedEyes.reduce((acc, e) => Math.max(acc, e.grade), 0) : -1;
+                    const printLayout = document.getElementById('print-report-layout');
+                    if (printLayout) {
+                        printLayout.innerHTML = buildPrintReport(window.__lastExamData, window.__lastExamEyes, worst, notesInput.value);
+                    }
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .print-report-layout {
+            display: none;
+        }
+
+        .page-actions {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+
+        @media print {
+            @page {
+                margin: 12mm;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-family: Arial, Helvetica, sans-serif !important;
+            }
+
+            .sidebar,
+            .page-header,
+            .medical-header-grid,
+            #eyes-grid,
+            .clinical-rec-container,
+            .card,
+            .page-header .btn,
+            .page-actions,
+            .image-viewer,
+            #loading-state,
+            #error-state,
+            .nav-badge,
+            .toast-container {
+                display: none !important;
+            }
+
+            .app-layout,
+            .main-content {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .print-report-layout {
+                display: block !important;
+                color: #000000 !important;
+                background: #ffffff !important;
+            }
+
+            .print-report-header {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                border: 1px solid #b7d5ea;
+                border-left: 4px solid #0f5f8f;
+                background: #f2f8fd;
+                padding: 10px 12px;
+                margin-bottom: 12px;
+            }
+
+            .print-report-logo {
+                border: none;
+                background: transparent;
+                color: #0f5f8f;
+                padding: 0;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .print-report-logo i {
+                font-size: 14px;
+            }
+
+            .print-patient-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px 16px;
+                border: 1px solid #b7d5ea;
+                background: #f8fcff;
+                padding: 10px;
+                margin-bottom: 12px;
+            }
+
+            .print-patient-grid div {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                border-bottom: 1px solid #eeeeee;
+                padding-bottom: 2px;
+                font-size: 12px;
+            }
+
+            .print-patient-grid span {
+                color: #245979;
+            }
+
+            .print-patient-grid strong {
+                font-weight: 700;
+                color: #000000;
+            }
+
+            .print-global-summary {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                border: 1px solid #b7d5ea;
+                border-top: 3px solid #0f5f8f;
+                margin-bottom: 12px;
+            }
+
+            .print-global-summary > div {
+                border-right: 1px solid #d7e8f4;
+                background: #f5fbff;
+                padding: 8px 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                font-size: 12px;
+            }
+
+            .print-global-summary > div:last-child {
+                border-right: none;
+            }
+
+            .print-global-summary span {
+                color: #245979;
+            }
+
+            .print-global-summary strong {
+                font-size: 13px;
+                font-weight: 700;
+                color: #0b3b59;
+            }
+
+            .print-comparison-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 12px;
+                font-size: 12px;
+            }
+
+            .print-comparison-table th,
+            .print-comparison-table td {
+                border: 1px solid #c8ddeb;
+                padding: 7px 8px;
+                vertical-align: top;
+                text-align: left;
+            }
+
+            .print-comparison-table thead th {
+                background: #eaf4fb;
+                font-weight: 700;
+                color: #0b3b59;
+            }
+
+            .print-comparison-table tbody td:first-child {
+                background: #f6fbff;
+                font-weight: 600;
+                color: #164d72;
+            }
+
+            .print-severity-chip {
+                display: inline-block;
+                min-width: 86px;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1.2;
+                padding: 3px 8px;
+                border-radius: 999px;
+                border: 1px solid transparent;
+            }
+
+            .print-severity-chip.severity-low {
+                background: #e7f6ec;
+                color: #17663a;
+                border-color: #b8e1c6;
+            }
+
+            .print-severity-chip.severity-medium {
+                background: #fff7d6;
+                color: #8a6400;
+                border-color: #f1df9b;
+            }
+
+            .print-severity-chip.severity-high {
+                background: #ffe4e4;
+                color: #a11717;
+                border-color: #f0b5b5;
+            }
+
+            .print-severity-chip.severity-unknown {
+                background: #f3f4f6;
+                color: #4b5563;
+                border-color: #d1d5db;
+            }
+
+            .print-images-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .print-eye-column {
+                border: 1px solid #b7d5ea;
+                padding: 0;
+                display: grid;
+                grid-template-rows: auto auto auto;
+            }
+
+            .print-eye-column h5 {
+                margin: 0;
+                padding: 7px 8px;
+                font-size: 12px;
+                font-weight: 700;
+                background: #eaf4fb;
+                border-bottom: 1px solid #c8ddeb;
+                color: #0b3b59;
+            }
+
+            .print-image-block {
+                border: none;
+                border-top: 1px solid #dbe8f2;
+                padding: 6px;
+                margin: 0;
+            }
+
+            .print-image-label {
+                font-size: 11px;
+                font-weight: 700;
+                margin-bottom: 4px;
+                color: #245979;
+            }
+
+            .print-image-block img {
+                width: 100%;
+                max-height: 165px;
+                object-fit: contain;
+                border: 1px solid #e5e7eb;
+                display: block;
+            }
+
+            .print-image-fallback {
+                border: 1px dashed #d1d5db;
+                padding: 24px 6px;
+                text-align: center;
+                font-size: 11px;
+                color: #4b5563;
+                background: #ffffff;
+            }
+
+            .print-recommendation-box {
+                border: 1px solid #b7d5ea;
+                background: #f8fcff;
+                border-left: 4px solid #0f5f8f;
+                padding: 10px;
+                margin-bottom: 12px;
+            }
+
+            .print-recommendation-box h4 {
+                margin: 0 0 8px 0;
+                font-size: 13px;
+                font-weight: 700;
+                color: #0b3b59;
+            }
+
+            .print-recommendation-box p {
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+
+            .print-doctor-note-box {
+                page-break-before: always;
+                break-before: page;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                min-height: 210mm;
+                padding: 14px;
+                border-left: 6px solid #0b3b59;
+                background: #ffffff;
+            }
+
+            .print-doctor-note-box h4 {
+                font-size: 18px;
+                margin-bottom: 12px;
+                color: #062a40;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+
+            .print-doctor-note-content {
+                font-size: 15px !important;
+                line-height: 1.8 !important;
+                color: #111827;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            .print-report-footer {
+                border-top: 1px solid #b7d5ea;
+                padding-top: 8px;
+                font-size: 11px;
+                line-height: 1.45;
+                color: #184f74;
+            }
+
+            .print-report-footer p {
+                margin: 4px 0;
+            }
+        }
+    </style>
+</body>
+</html>

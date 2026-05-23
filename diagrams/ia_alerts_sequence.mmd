@@ -1,0 +1,90 @@
+@startuml IA_Alert_Sequence
+autonumber
+skinparam handwritten true
+
+participant Frontend
+participant Backend
+participant "AI Service" as IA
+database DB
+participant "Storage (uploads/exams)" as Storage
+participant WebSocket
+participant "Mail Service" as Mail
+participant "Center Admin" as Admin
+participant Doctor
+participant "Super Admin" as SuperAdmin
+
+note over SuperAdmin
+  Rôle de gouvernance clinique:
+  - Définir les centres, les comptes administrateurs et les règles globales
+  - Superviser les seuils d'alerte, l'audit et la qualité du dispositif
+end note
+
+note over Admin
+  Rôle clinique opérationnel:
+  - Enregistrer le patient et l'examen
+  - Déclencher l'analyse IA et joindre les images
+  - Assurer le suivi administratif du dossier
+end note
+
+note over Doctor
+  Rôle clinique de validation:
+  - Recevoir les alertes critiques
+  - Vérifier l'interprétation IA et l'historique du patient
+  - Confirmer la conduite à tenir et le suivi
+end note
+
+== Analyse IA & alerting ==
+
+Frontend -> Backend : POST /exams (image_path)
+activate Backend
+
+Backend -> Storage : Ensure file exists
+Storage --> Backend : image_path
+
+Backend -> Backend : If DICOM and no preview -> convert
+note right: call convert_dicom_to_jpeg.py
+Backend -> Storage : save preview.jpg
+Storage --> Backend : preview_path
+
+Backend -> IA : POST /analyse (image_path or preview_path)  /* async */
+activate IA
+IA -> IA : Prétraitement, prédiction, confiance, heatmap
+IA --> Backend : {grade, confidence, heatmap_bytes}
+deactivate IA
+
+Backend -> Storage : Save heatmap
+Storage --> Backend : heatmap_path
+
+Backend -> DB : INSERT exam (image_path, preview_path, heatmap_path, grade, confidence)
+DB --> Backend : exam_id
+
+Backend -> WebSocket : Push exam result (exam_id, grade, confidence, heatmap_path)
+WebSocket --> Frontend : Push result
+
+alt grade >= CRITICAL_THRESHOLD
+    Backend -> DB : INSERT alert (exam_id, patient_id, doctor_id, priority='critical')
+    DB --> Backend : alert_id
+    Backend -> Mail : Send alert email (async)
+    Mail --> Doctor : Email
+    Backend -> WebSocket : Push alert (alert_id)
+    WebSocket --> Frontend : Push alert
+end
+
+== Error handling ==
+
+IA --> Backend : (timeout / error)
+Backend -> Backend : Log error, mark exam status='analysis_failed'
+Backend -> DB : Update exam status
+DB --> Backend : ok
+Backend -> WebSocket : Push error notification
+WebSocket --> Frontend : Push error
+
+note left of Backend
+  Recommendations:
+  - Make conversion & IA calls asynchronous with timeouts
+  - Backfill job for failed conversions
+  - Store only paths in DB, keep files on server disk
+end note
+
+deactivate Backend
+@enduml

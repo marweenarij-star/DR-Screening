@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="700" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title { font: 20px sans-serif; font-weight: bold; }
+    .label { font: 14px sans-serif; }
+    .step { font: 12px sans-serif; }
+    .box { fill: #f7f7f7; stroke: #ccc; stroke-width: 1.5px; }
+    .arrow { stroke: #333; stroke-width: 2px; fill: none; marker-end: url(#arrowhead); }
+    .image { stroke: #666; stroke-width: 1px; }
+    .heat { fill: url(#heatGrad); opacity: 0.6; }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+    <linearGradient id="heatGrad" x1="0%" x2="100%">
+      <stop offset="0%" stop-color="#ffffb2" />
+      <stop offset="50%" stop-color="#fecc5c" />
+      <stop offset="100%" stop-color="#f03b20" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <text x="20" y="30" class="title">Génération d'une heatmap Grad-CAM (schéma)</text>
+
+  <!-- Step 1: Input image -->
+  <rect x="30" y="60" width="240" height="180" class="box"/>
+  <text x="50" y="90" class="label">1) Image d'entrée (fond d'œil)</text>
+  <rect x="50" y="100" width="200" height="120" class="image" fill="#ffffff"/>
+  <text x="60" y="160" class="step">Prétraitement : recadrage, normalisation</text>
+
+  <!-- Arrow to step 2 -->
+  <path d="M270 150 L340 150" class="arrow" />
+
+  <!-- Step 2: Forward pass -->
+  <rect x="340" y="60" width="240" height="180" class="box"/>
+  <text x="360" y="90" class="label">2) Passage avant (CNN)</text>
+  <rect x="360" y="100" width="200" height="120" fill="#ffffff"/>
+  <text x="370" y="140" class="step">Activation des cartes (feature maps)</text>
+
+  <!-- Arrow to step 3 -->
+  <path d="M580 150 L650 150" class="arrow" />
+
+  <!-- Step 3: Grad-CAM weights -->
+  <rect x="650" y="60" width="240" height="180" class="box"/>
+  <text x="670" y="90" class="label">3) Calcul des poids</text>
+  <rect x="670" y="100" width="200" height="120" fill="#ffffff"/>
+  <text x="680" y="140" class="step">w_k^c = average(∂y^c / ∂A^k)</text>
+
+  <!-- Arrow to step 4 -->
+  <path d="M890 150 L960 150" class="arrow" />
+
+  <!-- Step 4: Weighted sum + ReLU -->
+  <rect x="960" y="60" width="240" height="180" class="box"/>
+  <text x="980" y="90" class="label">4) Fusion et ReLU</text>
+  <rect x="980" y="100" width="200" height="120" fill="#ffffff"/>
+  <text x="990" y="140" class="step">L^c = ReLU(Σ_k w_k^c · A^k)</text>
+
+  <!-- Down to overlay -->
+  <path d="M400 260 L400 330" class="arrow" />
+  <path d="M400 330 L540 330" class="arrow" />
+
+  <!-- Overlay image and heatmap -->
+  <rect x="520" y="340" width="520" height="300" class="box"/>
+  <text x="540" y="370" class="label">5) Superposition</text>
+  <rect x="540" y="390" width="480" height="240" fill="#fff"/>
+  <!-- base retinal image (placeholder) -->
+  <g>
+    <ellipse cx="780" cy="510" rx="160" ry="140" fill="#f6f6f6" stroke="#bbb"/>
+    <circle cx="780" cy="480" r="24" fill="#e6e6e6" stroke="#999"/>
+    <text x="700" y="620" class="step">Image rétinienne</text>
+  </g>
+  <!-- heatmap overlay -->
+  <g filter="url(#glow)">
+    <path d="M720 460 C750 420 810 420 840 460 C870 500 840 540 800 560 C760 580 720 560 720 520 Z" class="heat"/>
+  </g>
+  <text x="540" y="665" class="step">Heatmap (normalisée) superposée par alpha blending</text>
+
+  <!-- Legend -->
+  <rect x="1080" y="560" width="90" height="60" fill="#fff" stroke="#ccc"/>
+  <text x="1090" y="580" class="label">Légende</text>
+  <rect x="1100" y="590" width="60" height="12" fill="url(#heatGrad)"/>
+  <text x="1100" y="610" class="step">Jaune → Rouge = faible → fort</text>
+
+  <!-- Footer explanation -->
+  <text x="30" y="680" class="step">Note : Grad-CAM calcule des poids par carte d'activation, réalise une somme pondérée suivie d'une ReLU, puis normalise et redimensionne la carte pour la superposer sur l'image d'entrée.</text>
+</svg>
