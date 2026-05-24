@@ -2,7 +2,10 @@
  * DR Screening - Main Application JavaScript
  */
 
-const API_BASE = '/api';
+// Configure the backend API base URL for local and hosted deployments.
+// - Local backend: leave undefined to use '/api'
+// - Vercel frontend: define window.API_BASE before loading app.js
+const API_BASE = window.API_BASE || window.__API_BASE__ || '/api';
 
 // Token management
 const TokenManager = {
