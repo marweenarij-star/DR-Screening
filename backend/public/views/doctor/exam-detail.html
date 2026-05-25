@@ -14,7 +14,7 @@
     <div class="app-layout">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="/doctor/dashboard" class="sidebar-brand">
+                <a href="/views/doctor/dashboard.html" class="sidebar-brand">
                     <i class="fas fa-eye"></i>
                     <span>DR Screening</span>
                 </a>
@@ -24,13 +24,13 @@
                 <div class="nav-section">Médecin</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/doctor/dashboard" class="nav-link">
+                        <a href="/views/doctor/dashboard.html" class="nav-link">
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Tableau de bord</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/doctor/alerts" class="nav-link">
+                        <a href="/views/doctor/alerts.html" class="nav-link">
                             <i class="fas fa-bell"></i>
                             <span>Alertes</span>
                             <span class="nav-badge" id="alert-badge" style="display: none;">0</span>
@@ -59,7 +59,7 @@
         <main class="main-content">
             <div class="page-header">
                 <div>
-                    <a href="/doctor/dashboard" class="btn btn-outline btn-sm mb-2">
+                    <a href="/views/doctor/dashboard.html" class="btn btn-outline btn-sm mb-2">
                         <i class="fas fa-arrow-left"></i>
                         Retour au tableau de bord
                     </a>
@@ -87,7 +87,7 @@
                         <i class="fas fa-exclamation-circle"></i>
                         <h3>Examen non trouvé</h3>
                         <p>Impossible de charger cet examen.</p>
-                        <a href="/doctor/dashboard" class="btn btn-primary mt-4">Retour</a>
+                        <a href="/views/doctor/dashboard.html" class="btn btn-primary mt-4">Retour</a>
                     </div>
                 </div>
             </div>
@@ -214,6 +214,7 @@
         </div>
     </div>
 
+    <script src="/js/config.js"></script>
     <script src="/js/app.js"></script>
     <script>
         const EYE_LABELS = {
@@ -1097,9 +1098,17 @@
             };
         }
 
-        async function loadExam() {
+        function getExamId() {
+            // Support both ?id=123 (static deployment) and /doctor/exams/123 (Express routes)
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramId = urlParams.get('id');
+            if (paramId) return paramId;
             const pathParts = window.location.pathname.split('/');
-            const examId = pathParts[pathParts.length - 1];
+            return pathParts[pathParts.length - 1];
+        }
+
+        async function loadExam() {
+            const examId = getExamId();
 
             try {
                 const response = await API.get(`/doctor/exams/${examId}`);
@@ -1117,8 +1126,7 @@
         }
 
         async function saveDoctorReport() {
-            const pathParts = window.location.pathname.split('/');
-            const examId = pathParts[pathParts.length - 1];
+            const examId = getExamId();
             const notesInput = document.getElementById('doctor-report-notes');
             const saveButton = document.getElementById('save-report-btn');
             const inlineSaveButton = document.getElementById('save-report-inline-btn');

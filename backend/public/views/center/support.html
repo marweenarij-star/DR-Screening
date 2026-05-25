@@ -14,7 +14,7 @@
     <div class="app-layout">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="/center/dashboard" class="sidebar-brand">
+                <a href="/views/center/dashboard.html" class="sidebar-brand">
                     <i class="fas fa-hospital"></i>
                     <span>Admin Centre</span>
                 </a>
@@ -24,13 +24,13 @@
                 <div class="nav-section">Gestion</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/center/dashboard" class="nav-link">
+                        <a href="/views/center/dashboard.html" class="nav-link">
                             <i class="fas fa-chart-line"></i>
                             <span>Tableau de bord</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/doctors" class="nav-link">
+                        <a href="/views/center/doctors.html" class="nav-link">
                             <i class="fas fa-stethoscope"></i>
                             <span>Médecins</span>
                         </a>
@@ -39,19 +39,19 @@
                 <div class="nav-section">Dépistage</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/center/new-exam" class="nav-link">
+                        <a href="/views/center/new-exam.html" class="nav-link">
                             <i class="fas fa-plus-circle"></i>
                             <span>Nouveau dépistage</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/history" class="nav-link">
+                        <a href="/views/center/history.html" class="nav-link">
                             <i class="fas fa-clock-rotate-left"></i>
                             <span>Historique</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/support" class="nav-link active">
+                        <a href="/views/center/support.html" class="nav-link active">
                             <i class="fas fa-life-ring"></i>
                             <span>Support & Assistance</span>
                         </a>
@@ -166,19 +166,20 @@
         </div>
     </div>
 
+    <script src="/js/config.js"></script>
     <script src="/js/app.js"></script>
     <script>
         let supportMessages = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!Auth.isAuthenticated()) {
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return;
             }
 
             const user = Auth.getUser();
             if (user.role !== 'center_admin') {
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return;
             }
 

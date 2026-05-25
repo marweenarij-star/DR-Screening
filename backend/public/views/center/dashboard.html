@@ -14,7 +14,7 @@
     <div class="app-layout">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="/center/dashboard" class="sidebar-brand">
+                <a href="/views/center/dashboard.html" class="sidebar-brand">
                     <i class="fas fa-hospital"></i>
                     <span>Admin Centre</span>
                 </a>
@@ -24,13 +24,13 @@
                 <div class="nav-section">Gestion</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/center/dashboard" class="nav-link active">
+                        <a href="/views/center/dashboard.html" class="nav-link active">
                             <i class="fas fa-chart-line"></i>
                             <span>Tableau de bord</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/doctors" class="nav-link">
+                        <a href="/views/center/doctors.html" class="nav-link">
                             <i class="fas fa-stethoscope"></i>
                             <span>Médecins</span>
                         </a>
@@ -39,19 +39,19 @@
                 <div class="nav-section">Dépistage</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/center/new-exam" class="nav-link">
+                        <a href="/views/center/new-exam.html" class="nav-link">
                             <i class="fas fa-plus-circle"></i>
                             <span>Nouveau dépistage</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/history" class="nav-link">
+                        <a href="/views/center/history.html" class="nav-link">
                             <i class="fas fa-clock-rotate-left"></i>
                             <span>Historique</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/center/support" class="nav-link">
+                        <a href="/views/center/support.html" class="nav-link">
                             <i class="fas fa-life-ring"></i>
                             <span>Support & Assistance</span>
                         </a>
@@ -108,7 +108,7 @@
                         </div>
                     </div>
                     <div class="pending-dossiers-actions">
-                        <a href="/center/new-exam" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle"></i> Nouvel examen</a>
+                        <a href="/views/center/new-exam.html" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle"></i> Nouvel examen</a>
                     </div>
                 </div>
                 <div class="card-body pending-dossiers-body">
@@ -151,6 +151,7 @@
         </main>
     </div>
 
+    <script src="/js/config.js"></script>
     <script src="/js/app.js"></script>
     <script>
         let selectedPendingDoctorId = '';
@@ -158,13 +159,13 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // Check auth
             if (!Auth.isAuthenticated()) {
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return;
             }
 
             const user = Auth.getUser();
             if (user.role !== 'center_admin') {
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return;
             }
 
@@ -291,7 +292,7 @@
 
                 const data = response.data || {};
                 Toast.show('Statut mis à jour: examen en cours', 'success');
-                window.location.href = `/center/new-exam?patient_id=${encodeURIComponent(data.patient_id)}&doctor_id=${encodeURIComponent(data.doctor_id || '')}`;
+                window.location.href = `/views/center/new-exam.html?patient_id=${encodeURIComponent(data.patient_id)}&doctor_id=${encodeURIComponent(data.doctor_id || '')}`;
             } catch (error) {
                 Toast.show(error.message || 'Erreur lors du démarrage', 'danger');
             }

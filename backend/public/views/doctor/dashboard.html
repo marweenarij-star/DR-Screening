@@ -15,7 +15,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="/doctor/dashboard" class="sidebar-brand">
+                <a href="/views/doctor/dashboard.html" class="sidebar-brand">
                     <i class="fas fa-eye"></i>
                     <span>DR Screening</span>
                 </a>
@@ -25,20 +25,20 @@
                 <div class="nav-section">Médecin</div>
                 <ul>
                     <li class="nav-item">
-                        <a href="/doctor/dashboard" class="nav-link active">
+                        <a href="/views/doctor/dashboard.html" class="nav-link active">
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Tableau de bord</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/doctor/patients" class="nav-link" id="sidebar-patients-link">
+                        <a href="/views/doctor/dashboard.html?view=patients" class="nav-link" id="sidebar-patients-link">
                             <i class="fas fa-users"></i>
                             <span>Mes patients</span>
                             <span class="nav-badge" id="patients-sidebar-badge" style="display: none;">0</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/doctor/alerts" class="nav-link">
+                        <a href="/views/doctor/alerts.html" class="nav-link">
                             <i class="fas fa-bell"></i>
                             <span>Alertes</span>
                             <span class="nav-badge" id="alert-badge" style="display: none;">0</span>
@@ -413,6 +413,7 @@
         </div>
     </div>
     
+    <script src="/js/config.js"></script>
     <script src="/js/app.js"></script>
     <script>
         let currentPage = 1;
@@ -502,7 +503,7 @@
             if (!Auth.checkRole('doctor')) return;
 
             const urlParams = new URLSearchParams(window.location.search);
-            const isPatientsRoute = window.location.pathname === '/doctor/patients' || urlParams.get('view') === 'patients';
+            const isPatientsRoute = window.location.pathname.includes('/doctor/patients') || urlParams.get('view') === 'patients';
             if (isPatientsRoute) {
                 patientsViewMode = 'managed';
             }
@@ -541,8 +542,8 @@
             if (sidebarPatientsLink) {
                 sidebarPatientsLink.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const targetUrl = '/doctor/patients';
-                    if (window.location.pathname !== '/doctor/dashboard') {
+                    const targetUrl = '/views/doctor/dashboard.html?view=patients';
+                    if (!window.location.pathname.includes('/doctor/dashboard')) {
                         window.location.href = targetUrl;
                         return;
                     }
@@ -1220,7 +1221,7 @@
         }
 
         function historyActionCell(examId) {
-            return `<a href="/doctor/exams/${examId}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Ouvrir</a>`;
+            return `<a href="/views/doctor/exam-detail.html?id=${examId}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Ouvrir</a>`;
         }
 
         function requestExamButtonHtml(patientId, patientName, dossierStatus) {

@@ -52,16 +52,16 @@ const api = {
             
             if (response.status === 401) {
                 TokenManager.clear();
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return null;
             }
-            
+
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.error || 'Erreur de connexion');
             }
-            
+
             return data;
         } catch (error) {
             console.error('API Error:', error);
@@ -93,7 +93,7 @@ const api = {
 
             if (response.status === 401) {
                 TokenManager.clear();
-                window.location.href = '/login';
+                window.location.href = '/views/login.html';
                 return null;
             }
 
@@ -180,13 +180,13 @@ const WebSocketManager = {
                         if (user && user.role === 'center_admin') {
                             showCenterOpenButtons(examId);
                             const path = window.location.pathname || '';
-                            if (path.startsWith('/center/new-exam') || path.startsWith('/center/history') || path.startsWith('/center/dashboard')) {
-                                window.location.href = `/center/exams/${examId}`;
+                            if (path.includes('/center/new-exam') || path.includes('/center/history') || path.includes('/center/dashboard')) {
+                                window.location.href = `/views/center/history.html`;
                             }
                         } else if (user && user.role === 'doctor') {
                             const path = window.location.pathname || '';
-                            if (path.startsWith('/doctor/dashboard') || path.startsWith('/doctor/exams')) {
-                                window.location.href = `/doctor/exams/${examId}`;
+                            if (path.includes('/doctor/dashboard') || path.includes('/doctor/exam')) {
+                                window.location.href = `/views/doctor/exam-detail.html?id=${examId}`;
                             }
                         }
                     } catch (e) {
@@ -397,7 +397,7 @@ const Auth = {
         }
         TokenManager.clear();
         WebSocketManager.disconnect();
-        window.location.href = '/login';
+        window.location.href = '/views/login.html';
     },
     
     isAuthenticated() {
@@ -410,16 +410,16 @@ const Auth = {
     
     checkAuth() {
         if (!this.isAuthenticated()) {
-            window.location.href = '/login';
+            window.location.href = '/views/login.html';
             return false;
         }
         return true;
     },
-    
+
     checkRole(requiredRole) {
         const user = this.getUser();
         if (!user || user.role !== requiredRole) {
-            window.location.href = '/login';
+            window.location.href = '/views/login.html';
             return false;
         }
         return true;
@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function showCenterOpenButtons(examId) {
     try {
         ['new-exam', 'history'].forEach(slug => {
-            const link = document.querySelector(`a.nav-link[href="/center/${slug}"]`);
+            const link = document.querySelector(`a.nav-link[href="/views/center/${slug}.html"]`);
             if (!link) return;
             let btn = link.parentElement.querySelector('.nav-open-btn');
             if (!btn) {
@@ -683,7 +683,7 @@ function showCenterOpenButtons(examId) {
                 btn.textContent = 'Ouvrir';
                 btn.onclick = (e) => {
                     e.stopPropagation();
-                    window.location.href = `/center/exams/${examId}`;
+                    window.location.href = `/views/center/history.html`;
                 };
                 link.parentElement.insertBefore(btn, link);
             } else {

@@ -55,15 +55,15 @@
             if (Auth.isAuthenticated()) {
                 const user = Auth.getUser();
                 if (user.must_change_password) {
-                    window.location.href = '/set-password';
+                    window.location.href = '/views/set-password.html';
                     return;
                 }
                 if (user.role === 'super_admin') {
-                    window.location.href = '/super/dashboard';
+                    window.location.href = '/views/super/dashboard.html';
                 } else if (user.role === 'center_admin') {
-                    window.location.href = '/center/dashboard';
+                    window.location.href = '/views/center/dashboard.html';
                 } else {
-                    window.location.href = '/doctor/dashboard';
+                    window.location.href = '/views/doctor/dashboard.html';
                 }
                 return;
             }
@@ -98,16 +98,16 @@
                     
                     if (data) {
                         if (data.user.must_change_password) {
-                            window.location.href = '/set-password';
+                            window.location.href = '/views/set-password.html';
                             return;
                         }
 
                         if (data.user.role === 'super_admin') {
-                            window.location.href = '/super/dashboard';
+                            window.location.href = '/views/super/dashboard.html';
                         } else if (data.user.role === 'center_admin') {
-                            window.location.href = '/center/dashboard';
+                            window.location.href = '/views/center/dashboard.html';
                         } else {
-                            window.location.href = '/doctor/dashboard';
+                            window.location.href = '/views/doctor/dashboard.html';
                         }
                     }
                 } catch (error) {
