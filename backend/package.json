@@ -4,11 +4,12 @@
   "description": "Diabetic Retinopathy Screening System - Node.js Backend",
   "main": "src/server.js",
   "scripts": {
-    "start": "nodemon src/server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "backfill:previews": "node scripts/backfill-preview-images.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.31.0",
     "aedes": "^1.0.2",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",

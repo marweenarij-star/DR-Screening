@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: dr-screening-backend
+    env: node
+    plan: starter
+    branch: main
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
