@@ -47,7 +47,7 @@ HEATMAP_STYLE = os.getenv("HEATMAP_STYLE", "thermal_final_v3").strip().lower()
 
 # HuggingFace Configuration
 HF_MODEL_NAME = "rafalosa/diabetic-retinopathy-224-procnorm-vit"
-HF_TOKEN = os.getenv("HF_TOKEN", "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")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 
 # Setup logging
 logging.basicConfig(
