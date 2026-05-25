@@ -254,15 +254,18 @@ def load_model():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {device}")
         
-        # Load processor and model with authentication
+        # Load processor and model
+        # Pass token=None when empty to avoid "Bearer " invalid header error
+        _token = HF_TOKEN if HF_TOKEN else None
+
         processor = AutoImageProcessor.from_pretrained(
             HF_MODEL_NAME,
-            token=HF_TOKEN
+            token=_token
         )
-        
+
         model = AutoModelForImageClassification.from_pretrained(
             HF_MODEL_NAME,
-            token=HF_TOKEN
+            token=_token
         )
         
         model = model.to(device)
