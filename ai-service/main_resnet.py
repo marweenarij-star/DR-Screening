@@ -43,7 +43,7 @@ MODEL_INFO_PATH = Path(__file__).parent / "models" / "model_info.json"
 # Fallback to HuggingFace model if custom model not found
 USE_HUGGINGFACE = os.getenv("USE_HUGGINGFACE", "false").lower() == "true"
 HF_MODEL_NAME = "rafalosa/diabetic-retinopathy-224-procnorm-vit"
-HF_TOKEN = os.getenv("HF_TOKEN", "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")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 
 # Setup logging
 logging.basicConfig(
