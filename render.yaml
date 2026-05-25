@@ -1,18 +1,32 @@
 services:
-  # ─── Node.js + Python AI backend (Docker) ────────────────────────────────────
-  # Uses backend/Dockerfile which installs gfortran, scipy, torch, etc.
-  # then installs Node.js deps and starts the Express server.
+  # ─── 1. Node.js Express backend ──────────────────────────────────────────────
   - type: web
     name: dr-screening-backend
-    env: docker
+    env: node
     plan: starter
     branch: main
-    dockerfilePath: ./backend/Dockerfile
-    # Build context is the repo root so COPY backend/ and COPY ai-service/ work
-    dockerContext: .
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
+
+  # ─── 2. Python FastAPI AI service ────────────────────────────────────────────
+  # Uses ai-service/requirements.txt which has NO scipy/scikit-learn,
+  # so no Fortran compiler is required.
+  - type: web
+    name: dr-screening-ai
+    env: python
+    plan: starter
+    branch: main
+    rootDir: ai-service
+    buildCommand: pip install --upgrade pip && pip install --prefer-binary -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: LOG_LEVEL
+        value: INFO
