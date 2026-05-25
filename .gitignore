@@ -35,12 +35,22 @@ archive/
 APTOS/
 php-app/APTOS/
 training/checkpoints/
-ai-service/models/
 ai-service/heatmaps/
 heatmaps/
 uploads/
 backend/uploads/
 
+# AI model weights — ignore everything in models/ EXCEPT the inference checkpoints
+ai-service/models/*
+!ai-service/models/.gitkeep
+!ai-service/models/dr_resnet50_for_inference.pth
+!ai-service/models/dr_efficientnet_b3.pth
+!ai-service/models/ensemble_weights.json
+!ai-service/models/thresholds.json
+
 # Env/secrets
 .env
 .env.*
+
+.vercel
+.env*

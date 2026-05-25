@@ -157,6 +157,58 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// SMTP diagnostics — open endpoint for debugging (remove once SMTP is confirmed working)
+app.post('/api/debug/smtp-test', async (req, res) => {
+    const { to } = req.body;
+    const smtpUser = process.env.SMTP_USER || '';
+    const smtpPass = process.env.SMTP_PASS || '';
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+
+    // Show config (mask password)
+    const config = {
+        host: smtpHost,
+        port: smtpPort,
+        secure: process.env.SMTP_SECURE === 'true' || smtpPort === 465,
+        user: smtpUser,
+        passLength: smtpPass.length,
+        passSet: !!smtpPass,
+        toAddress: to || smtpUser
+    };
+
+    if (!smtpUser || !smtpPass) {
+        return res.json({ ok: false, config, error: 'SMTP_USER or SMTP_PASS not set in environment' });
+    }
+
+    try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: { user: smtpUser, pass: smtpPass },
+            tls: { rejectUnauthorized: false }
+        });
+
+        await transporter.verify();
+        config.verifyOk = true;
+
+        if (to) {
+            await transporter.sendMail({
+                from: `"DR Screening Test" <${smtpUser}>`,
+                to,
+                subject: 'DR Screening — SMTP test',
+                text: 'If you receive this email, SMTP is working correctly.'
+            });
+            config.emailSent = true;
+        }
+
+        res.json({ ok: true, config });
+    } catch (err) {
+        res.json({ ok: false, config, error: err.message, code: err.code });
+    }
+});
+
 // View Routes - Serve HTML pages
 app.get('/', (req, res) => {
     res.redirect('/login');

@@ -21,7 +21,9 @@ from dotenv import load_dotenv
 import cv2
 import json
 import torch
+import torch.nn as nn
 import torchvision.transforms.functional as TF
+from torchvision import models as _tv_models
 
 try:
     import pydicom
@@ -107,6 +109,67 @@ ENSEMBLE_WEIGHTS_PATH = Path(__file__).resolve().parents[0] / 'models' / 'ensemb
 local_resnet = None
 local_eff = None
 local_weights = None
+
+# ── Inline model architectures ──────────────────────────────────────────────
+# Defined here so HuggingFace Spaces never needs to import the training modules.
+
+RESNET_IMAGE_SIZE = 224
+EFFNET_IMAGE_SIZE = 300
+
+
+class _DRResNet50(nn.Module):
+    """ResNet50-based DR classifier — same architecture used during training."""
+
+    def __init__(self, num_classes=5, pretrained=False):
+        super().__init__()
+        self.backbone = _tv_models.resnet50(weights=None)
+        num_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(num_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes),
+        )
+
+    def forward(self, x):
+        return self.backbone(x)
+
+
+try:
+    import timm as _timm_mod
+
+    class _DREfficientNetB3(nn.Module):
+        """EfficientNetB3-based DR classifier — same architecture used during training."""
+
+        def __init__(self, num_classes=5, drop_rate=0.5, pretrained=False):
+            super().__init__()
+            self.backbone = _timm_mod.create_model(
+                'efficientnet_b3', pretrained=False, num_classes=0, global_pool='avg'
+            )
+            self.num_features = self.backbone.num_features  # 1536
+            self.classifier = nn.Sequential(
+                nn.BatchNorm1d(self.num_features),
+                nn.Dropout(drop_rate),
+                nn.Linear(self.num_features, 512),
+                nn.ReLU(inplace=True),
+                nn.BatchNorm1d(512),
+                nn.Dropout(drop_rate * 0.6),
+                nn.Linear(512, 256),
+                nn.ReLU(inplace=True),
+                nn.Dropout(drop_rate * 0.4),
+                nn.Linear(256, num_classes),
+            )
+
+        def forward(self, x):
+            return self.classifier(self.backbone(x))
+
+except ImportError:
+    _timm_mod = None
+    _DREfficientNetB3 = None
+    logger_tmp = logging.getLogger(__name__)
+    logger_tmp.warning('timm not installed — EfficientNet ensemble arm disabled')
+# ────────────────────────────────────────────────────────────────────────────
 
 
 class ViTGradCAM:
@@ -291,36 +354,38 @@ def load_model():
 
         # Attempt to load local models (ResNet / EfficientNet)
         try:
-            from training import train_resnet50 as res_mod
-            from training import train_efficientnet as eff_mod
-
             if LOCAL_RES_PATH.exists():
                 ck = torch.load(str(LOCAL_RES_PATH), map_location=device, weights_only=False)
-                local = res_mod.DRClassifier(num_classes=res_mod.CONFIG['num_classes'], pretrained=False)
+                local = _DRResNet50(num_classes=5)
                 local.load_state_dict(ck['model_state_dict'])
                 local.to(device).eval()
                 globals()['local_resnet'] = local
                 resnet_gradcam_extractor = ResNetGradCAM(local)
-                logger.info('Loaded local ResNet model')
+                logger.info('Loaded local ResNet50 model')
+            else:
+                logger.warning(f'ResNet model not found at {LOCAL_RES_PATH}')
 
-            if LOCAL_EFF_PATH.exists():
+            if LOCAL_EFF_PATH.exists() and _DREfficientNetB3 is not None:
                 ck2 = torch.load(str(LOCAL_EFF_PATH), map_location=device, weights_only=False)
-                le = eff_mod.EfficientNetB3Classifier(num_classes=eff_mod.CONFIG['num_classes'], pretrained=False)
+                le = _DREfficientNetB3(num_classes=5)
                 le.load_state_dict(ck2['model_state_dict'])
                 le.to(device).eval()
                 globals()['local_eff'] = le
-                logger.info('Loaded local EfficientNet model')
+                logger.info('Loaded local EfficientNetB3 model')
+            elif not LOCAL_EFF_PATH.exists():
+                logger.warning(f'EfficientNet model not found at {LOCAL_EFF_PATH}')
 
             # Load ensemble weights if present
             if ENSEMBLE_WEIGHTS_PATH.exists():
                 try:
-                    local_weights = json.load(open(ENSEMBLE_WEIGHTS_PATH))
-                    globals()['local_weights'] = local_weights
-                    logger.info(f'Loaded ensemble weights: {local_weights}')
+                    lw = json.load(open(ENSEMBLE_WEIGHTS_PATH))
+                    globals()['local_weights'] = lw
+                    logger.info(f'Loaded ensemble weights: {lw}')
                 except Exception:
-                    local_weights = None
+                    pass
         except Exception as e:
             logger.warning(f'Could not load local models: {e}')
+            import traceback; traceback.print_exc()
         
         return True
         
@@ -493,11 +558,9 @@ def predict_with_model(image_bytes: bytes) -> dict:
         try:
             if local_resnet is not None and local_eff is not None and local_weights is not None:
                 # run a single forward pass (no TTA) for local models
-                from training import train_resnet50 as res_mod
-                from training import train_efficientnet as eff_mod
 
                 # ResNet preprocess
-                rsz = res_mod.CONFIG['image_size']
+                rsz = RESNET_IMAGE_SIZE
                 t = TF.resize(image, (rsz, rsz))
                 t = TF.to_tensor(t)
                 t = TF.normalize(t, mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
@@ -507,7 +570,7 @@ def predict_with_model(image_bytes: bytes) -> dict:
                     pr_r = torch.softmax(out_r, dim=1).cpu().numpy()[0]
 
                 # EfficientNet preprocess
-                esz = eff_mod.CONFIG['image_size']
+                esz = EFFNET_IMAGE_SIZE
                 te = TF.resize(image, (esz, esz))
                 te = TF.to_tensor(te)
                 te = TF.normalize(te, mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
@@ -832,9 +895,7 @@ def generate_gradcam(image_bytes: bytes, predicted_class: int) -> bytes:
 
         # Preferred path: original ResNet layer4 Grad-CAM style.
         if local_resnet is not None and resnet_gradcam_extractor is not None:
-            from training import train_resnet50 as res_mod
-
-            input_image = TF.resize(image, (res_mod.CONFIG['image_size'], res_mod.CONFIG['image_size']))
+            input_image = TF.resize(image, (RESNET_IMAGE_SIZE, RESNET_IMAGE_SIZE))
             input_image = TF.to_tensor(input_image)
             input_image = TF.normalize(input_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             input_tensor = input_image.unsqueeze(0).to(device)

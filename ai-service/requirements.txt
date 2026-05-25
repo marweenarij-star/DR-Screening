@@ -21,6 +21,7 @@ pydicom>=2.4.4
 numpy>=1.26.0
 torch>=2.0.0
 torchvision>=0.15.0
+timm>=0.9.0
 
 # --- HuggingFace (ViT model download) ---
 transformers>=4.35.0
