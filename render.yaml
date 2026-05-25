@@ -1,13 +1,18 @@
 services:
+  # ─── Node.js + Python AI backend (Docker) ────────────────────────────────────
+  # Uses backend/Dockerfile which installs gfortran, scipy, torch, etc.
+  # then installs Node.js deps and starts the Express server.
   - type: web
     name: dr-screening-backend
-    env: node
+    env: docker
     plan: starter
     branch: main
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    dockerfilePath: ./backend/Dockerfile
+    # Build context is the repo root so COPY backend/ and COPY ai-service/ work
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3000
