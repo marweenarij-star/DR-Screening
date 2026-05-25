@@ -247,6 +247,7 @@ async function ensureDemoData() {
         if (!center) {
             const centerId = await db.insert('centers', {
                 name: 'Centre Ophtalmo Démo',
+                mode: 'full_platform',
                 address: 'Adresse du centre démo',
                 phone: '+33 1 23 45 67 89',
                 email: 'contact@centre-ophtalmo.fr'

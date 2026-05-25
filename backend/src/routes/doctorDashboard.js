@@ -5,6 +5,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
+const { syncPatientToSupabase, shouldSyncToSupabase } = require('../services/supabaseSync');
 
 const router = express.Router();
 
@@ -685,6 +686,10 @@ router.post('/patients', async (req, res) => {
             [patientId, doctorId, req.user.center_id]
         );
 
+        if (await shouldSyncToSupabase(req.user.center_id)) {
+            await syncPatientToSupabase(patient);
+        }
+
         res.status(201).json({ success: true, data: formatDoctorPatient(patient) });
     } catch (error) {
         console.error('Create doctor patient error:', error);
@@ -748,6 +753,10 @@ router.put('/patients/:id', async (req, res) => {
             'SELECT * FROM patients WHERE id = ? AND created_by_doctor_id = ? AND center_id = ?',
             [req.params.id, doctorId, req.user.center_id]
         );
+
+        if (await shouldSyncToSupabase(req.user.center_id)) {
+            await syncPatientToSupabase(updated);
+        }
 
         res.json({ success: true, data: formatDoctorPatient(updated) });
     } catch (error) {

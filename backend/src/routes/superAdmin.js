@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const { authMiddleware, roleMiddleware, generateActivationToken } = require('../middleware/auth');
 const { sendActivationEmail, sendCenterAdminActivationEmail } = require('../services/mailService');
+const { syncCenterToSupabase } = require('../services/supabaseSync');
 
 const router = express.Router();
 
@@ -435,6 +436,7 @@ router.post('/centers', async (req, res) => {
             phone,
             email,
             status,
+            mode,
             admin_password
         } = req.body;
 
@@ -472,12 +474,20 @@ router.post('/centers', async (req, res) => {
 
         const centerId = await db.insert('centers', {
             name,
+            mode: mode === 'integration' ? 'integration' : 'full_platform',
             location: location || null,
             address: address || null,
             phone: phone || null,
             email: email || null,
             status: 'pending'
         });
+
+        if (mode === 'full_platform') {
+            const createdCenter = await db.queryOne('SELECT * FROM centers WHERE id = ?', [centerId]);
+            if (createdCenter) {
+                await syncCenterToSupabase(createdCenter);
+            }
+        }
 
         const adminEmail = await generateUniqueAdminEmail(name);
         const adminName = `Admin ${name}`;

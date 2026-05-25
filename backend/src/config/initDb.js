@@ -10,6 +10,7 @@ async function initDatabase() {
         `CREATE TABLE IF NOT EXISTS centers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            mode TEXT NOT NULL DEFAULT 'full_platform' CHECK(mode IN ('full_platform', 'integration')),
             location TEXT,
             address TEXT,
             status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'pending', 'suspended')),
@@ -462,6 +463,20 @@ async function initDatabase() {
             db.run('ALTER TABLE centers ADD COLUMN location TEXT', (err) => {
                 if (err) {
                     console.error('Schema migration error (centers.location):', err.message);
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    const hasCenterMode = centerColumns.some((col) => col.name === 'mode');
+    if (!hasCenterMode) {
+        await new Promise((resolve, reject) => {
+            db.run("ALTER TABLE centers ADD COLUMN mode TEXT NOT NULL DEFAULT 'full_platform'", (err) => {
+                if (err) {
+                    console.error('Schema migration error (centers.mode):', err.message);
                     reject(err);
                 } else {
                     resolve();

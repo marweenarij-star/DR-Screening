@@ -12,6 +12,7 @@ const aiService = require('../services/aiService');
 const mailService = require('../services/mailService');
 const smsService = require('../services/smsService');
 const { notifyNewExam, notifyNewAlert } = require('../services/websocket');
+const { syncExamToSupabase, syncAlertToSupabase, shouldSyncToSupabase } = require('../services/supabaseSync');
 
 const router = express.Router();
 
@@ -278,12 +279,13 @@ router.post('/submit', roleMiddleware('center_admin'), upload.single('image'), a
         const fullImagePath = finalImagePath;
         
         // Create exam with status 'pending' (grade = -1 means not analyzed yet)
+        const initialGrade = -1;
         const examId = await db.insert('exams', {
             center_id: req.user.center_id,
             patient_id,
             doctor_id,
             image_path: imagePath,
-            grade: -1,  // Pending analysis
+            grade: initialGrade,  // Pending analysis
             confidence: 0,
             heatmap_path: null,
             eye: eyeValue,
@@ -291,6 +293,26 @@ router.post('/submit', roleMiddleware('center_admin'), upload.single('image'), a
             is_new_for_doctor: 1
         });
         createdExamId = examId;
+
+        // Do not attempt to sync pending/ungraded exams (grade < 0) to Supabase;
+        // they will be synced after analysis sets a valid grade (see autoAnalyzeExam).
+        if (await shouldSyncToSupabase(req.user.center_id) && initialGrade >= 0) {
+            await syncExamToSupabase({
+                id: examId,
+                center_id: req.user.center_id,
+                patient_id,
+                doctor_id,
+                image_path: imagePath,
+                heatmap_path: null,
+                overlay_path: null,
+                grade: initialGrade,
+                confidence: 0,
+                eye: eyeValue,
+                notes: notes || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+        }
         
         // Once the exam is sent, move the patient dossier back to historical on the admin side.
         await db.update('patients', { dossier_status: 'historique' }, 'id = ?', [patient_id]);
@@ -408,12 +430,13 @@ router.post(
             const imagePathOg = path.relative(path.join(__dirname, '../../'), finalImagePathOg);
 
             // Create two exams (right and left) with status 'pending' (grade = -1 means not analyzed yet)
+            const initialGrade = -1;
             const examIdRight = await db.insert('exams', {
                 center_id: req.user.center_id,
                 patient_id,
                 doctor_id,
                 image_path: imagePathOd,
-                grade: -1,
+                grade: initialGrade,
                 confidence: 0,
                 heatmap_path: null,
                 eye: 'right',
@@ -427,7 +450,7 @@ router.post(
                 patient_id,
                 doctor_id,
                 image_path: imagePathOg,
-                grade: -1,
+                grade: initialGrade,
                 confidence: 0,
                 heatmap_path: null,
                 eye: 'left',
@@ -435,6 +458,40 @@ router.post(
                 is_new_for_doctor: 1
             });
             createdExamIdLeft = examIdLeft;
+
+            // Do not sync pending/ungraded exams to Supabase; they will be synced after analysis.
+            if (await shouldSyncToSupabase(req.user.center_id) && initialGrade >= 0) {
+                await syncExamToSupabase({
+                    id: examIdRight,
+                    center_id: req.user.center_id,
+                    patient_id,
+                    doctor_id,
+                    image_path: imagePathOd,
+                    heatmap_path: null,
+                    overlay_path: null,
+                    grade: initialGrade,
+                    confidence: 0,
+                    eye: 'right',
+                    notes: notes || null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+                await syncExamToSupabase({
+                    id: examIdLeft,
+                    center_id: req.user.center_id,
+                    patient_id,
+                    doctor_id,
+                    image_path: imagePathOg,
+                    heatmap_path: null,
+                    overlay_path: null,
+                    grade: initialGrade,
+                    confidence: 0,
+                    eye: 'left',
+                    notes: notes || null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+            }
 
             // Once the exam is sent, move the patient dossier back to historical on the admin side.
             await db.update('patients', { dossier_status: 'historique' }, 'id = ?', [patient_id]);
@@ -566,6 +623,30 @@ async function autoAnalyzeExam(examId, fullImagePath, patientName, centerId, doc
             is_new_for_doctor: markAsNew ? 1 : 0
         }, 'id = ?', [examId]);
 
+        if (await shouldSyncToSupabase(centerId)) {
+            // Load the full exam row to ensure required non-null fields (image_path, created_at, etc.)
+            const examRow = await db.queryOne('SELECT * FROM exams WHERE id = ?', [examId]);
+            if (examRow) {
+                await syncExamToSupabase({
+                    id: examId,
+                    center_id: centerId,
+                    patient_id: examRow.patient_id,
+                    doctor_id: doctorId,
+                    image_path: examRow.image_path,
+                    heatmap_path: gradcamRelPath || examRow.heatmap_path || null,
+                    overlay_path: examRow.overlay_path || null,
+                    grade: prediction.grade,
+                    confidence: prediction.confidence,
+                    eye: examRow.eye || 'unknown',
+                    notes: examRow.notes || null,
+                    created_at: examRow.created_at || new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+            } else {
+                console.warn(`Unable to load exam ${examId} from local DB for Supabase sync.`);
+            }
+        }
+
         notifyNewExam(centerId, {
             exam_id: examId,
             patient_name: patientName,
@@ -580,12 +661,25 @@ async function autoAnalyzeExam(examId, fullImagePath, patientName, centerId, doc
         
         // If urgent (grade >= 3), create alert and send email
         if (prediction.grade >= 3) {
-            await db.insert('alerts', {
+            const alertId = await db.insert('alerts', {
                 exam_id: examId,
                 doctor_id: doctorId,
                 type: 'urgent',
                 message: `Rétinopathie ${prediction.grade >= 4 ? 'proliférante' : 'sévère'} détectée (Grade ${prediction.grade}) - Confiance: ${prediction.confidence.toFixed(1)}%`
             });
+
+            if (await shouldSyncToSupabase(centerId)) {
+                await syncAlertToSupabase({
+                    id: alertId,
+                    exam_id: examId,
+                    doctor_id: doctorId,
+                    type: 'urgent',
+                    message: `Rétinopathie ${prediction.grade >= 4 ? 'proliférante' : 'sévère'} détectée (Grade ${prediction.grade}) - Confiance: ${prediction.confidence.toFixed(1)}%`,
+                    created_at: new Date().toISOString(),
+                    is_read: false,
+                    is_resolved: false
+                });
+            }
             
             // Send WebSocket notification
             notifyNewAlert([doctorId], {
@@ -702,6 +796,30 @@ router.post('/:id/analyze', roleMiddleware('doctor'), async (req, res) => {
             confidence: prediction.confidence,
             heatmap_path: gradcamRelPath
         }, 'id = ?', [examId]);
+
+        if (await shouldSyncToSupabase(exam.center_id)) {
+            // Fetch full exam row so we include required fields (image_path, created_at)
+            const updatedExam = await db.queryOne('SELECT * FROM exams WHERE id = ?', [examId]);
+            if (updatedExam) {
+                await syncExamToSupabase({
+                    id: examId,
+                    center_id: updatedExam.center_id,
+                    patient_id: updatedExam.patient_id,
+                    doctor_id: req.user.user_id,
+                    image_path: updatedExam.image_path,
+                    heatmap_path: gradcamRelPath || updatedExam.heatmap_path || null,
+                    overlay_path: updatedExam.overlay_path || null,
+                    grade: prediction.grade,
+                    confidence: prediction.confidence,
+                    eye: updatedExam.eye || 'unknown',
+                    notes: updatedExam.notes || null,
+                    created_at: updatedExam.created_at || new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+            } else {
+                console.warn(`Unable to load updated exam ${examId} from local DB for Supabase sync.`);
+            }
+        }
         
         // If urgent (grade >= 3), create alert
         if (prediction.grade >= 3) {
