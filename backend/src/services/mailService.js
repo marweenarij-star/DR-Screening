@@ -107,7 +107,7 @@ async function sendUrgentAlert(doctorEmail, patientName, grade, confidence, exam
             <p>Un examen rétinien a révélé une rétinopathie diabétique ${grade >= 4 ? 'proliférante' : 'sévère'}. 
             Une évaluation et une prise en charge rapides sont recommandées.</p>
             
-            <a href="${process.env.APP_URL || 'http://localhost:3000'}/doctor/exams/${examId}" class="btn">
+            <a href="${process.env.APP_URL || 'http://localhost:3000'}/views/doctor/exam-detail.html?id=${examId}" class="btn">
                 Voir l'Examen
             </a>
             

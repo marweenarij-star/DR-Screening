@@ -180,7 +180,7 @@ router.post('/', async (req, res) => {
         });
         
         // Construct activation link
-        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/activate/${activationToken}`;
+        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/views/activate.html?token=${activationToken}`;
         
         // Send activation email without blocking doctor creation.
         const emailPromise = sendActivationEmail(email, `${first_name} ${last_name}`, activationLink);

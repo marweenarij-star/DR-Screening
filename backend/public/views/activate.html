@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activer mon compte - DR Screening</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <div class="login-logo">
+            <i class="fas fa-key"></i>
+            <h1>Activer mon compte</h1>
+            <p>Créez votre mot de passe pour accéder à la plateforme</p>
+        </div>
+
+        <div id="loading-state" style="text-align:center;padding:2rem;">
+            <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#00897b;"></i>
+            <p style="margin-top:1rem;">Vérification du lien d'activation...</p>
+        </div>
+
+        <div id="error-state" class="alert alert-danger hidden">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="error-msg">Lien d'activation invalide ou expiré.</span>
+            <div style="margin-top:1rem;">
+                <a href="/views/login.html" class="btn btn-outline btn-sm">Retour à la connexion</a>
+            </div>
+        </div>
+
+        <form id="activate-form" class="hidden">
+            <div id="user-info" style="background:#f0f8ff;border-left:4px solid #00897b;padding:12px 16px;border-radius:4px;margin-bottom:1.5rem;">
+                <p style="margin:0;font-size:0.9rem;color:#333;">
+                    Compte : <strong id="user-email">-</strong>
+                </p>
+            </div>
+
+            <div id="form-error" class="alert alert-danger hidden">
+                <i class="fas fa-exclamation-circle"></i>
+                <span></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required" for="password">Mot de passe</label>
+                <input type="password" id="password" class="form-control"
+                       placeholder="Minimum 12 caractères" required minlength="12" autofocus>
+                <div class="invalid-feedback"></div>
+                <small style="color:#666;font-size:0.8rem;">
+                    12 caractères minimum · majuscule · minuscule · chiffre · caractère spécial
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required" for="password_confirm">Confirmer le mot de passe</label>
+                <input type="password" id="password_confirm" class="form-control"
+                       placeholder="Répéter le mot de passe" required minlength="12">
+                <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="activate-btn">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Activer mon compte</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            // Support both ?token=... (center_admin) and path-based /activate/TOKEN (doctor)
+            const token = urlParams.get('token') || window.location.pathname.split('/').pop();
+
+            const loadingEl = document.getElementById('loading-state');
+            const errorEl   = document.getElementById('error-state');
+            const errorMsg  = document.getElementById('error-msg');
+            const formEl    = document.getElementById('activate-form');
+            const userEmail = document.getElementById('user-email');
+            const formError = document.getElementById('form-error');
+            const activateBtn = document.getElementById('activate-btn');
+
+            function showError(msg) {
+                loadingEl.style.display = 'none';
+                formEl.classList.add('hidden');
+                errorMsg.textContent = msg;
+                errorEl.classList.remove('hidden');
+            }
+
+            if (!token || token === 'activate.html') {
+                showError('Lien d\'activation manquant ou invalide.');
+                return;
+            }
+
+            // Validate token via API
+            try {
+                const API_BASE_URL = (window.API_BASE || '/api');
+                const resp = await fetch(`${API_BASE_URL}/auth/activation-status/${encodeURIComponent(token)}`);
+                const data = await resp.json();
+
+                if (!data.success || !data.valid) {
+                    showError(data.error || 'Lien d\'activation invalide ou expiré.');
+                    return;
+                }
+
+                // Show the form
+                userEmail.textContent = data.data.email || '';
+                loadingEl.style.display = 'none';
+                formEl.classList.remove('hidden');
+
+            } catch (err) {
+                showError('Impossible de vérifier le lien. Veuillez réessayer.');
+                return;
+            }
+
+            // Handle form submit
+            formEl.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const password = document.getElementById('password').value;
+                const password_confirm = document.getElementById('password_confirm').value;
+
+                formError.classList.add('hidden');
+                formError.querySelector('span').textContent = '';
+
+                if (!password || !password_confirm) {
+                    formError.querySelector('span').textContent = 'Veuillez remplir tous les champs.';
+                    formError.classList.remove('hidden');
+                    return;
+                }
+
+                if (password !== password_confirm) {
+                    formError.querySelector('span').textContent = 'Les mots de passe ne correspondent pas.';
+                    formError.classList.remove('hidden');
+                    return;
+                }
+
+                activateBtn.disabled = true;
+                activateBtn.querySelector('span').textContent = 'Activation...';
+
+                try {
+                    const API_BASE_URL = (window.API_BASE || '/api');
+                    const resp = await fetch(`${API_BASE_URL}/auth/activate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ activation_token: token, password, password_confirm })
+                    });
+                    const data = await resp.json();
+
+                    if (!data.success) {
+                        formError.querySelector('span').textContent = data.error || 'Erreur d\'activation.';
+                        formError.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Store token and redirect to login
+                    if (data.data && data.data.access_token) {
+                        localStorage.setItem('access_token', data.data.access_token);
+                    }
+                    alert('Compte activé avec succès ! Vous allez être redirigé vers la connexion.');
+                    window.location.href = '/views/login.html';
+
+                } catch (err) {
+                    formError.querySelector('span').textContent = 'Erreur de connexion. Veuillez réessayer.';
+                    formError.classList.remove('hidden');
+                } finally {
+                    activateBtn.disabled = false;
+                    activateBtn.querySelector('span').textContent = 'Activer mon compte';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

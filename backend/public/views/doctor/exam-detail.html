@@ -234,6 +234,15 @@
             dragStartY: 0
         };
 
+        // Prepend backend URL to relative image paths so Vercel frontend
+        // can load images from the Render backend
+        const BACKEND_BASE = (window.API_BASE || '/api').replace(/\/api\/?$/, '');
+        function toAbsUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+            return BACKEND_BASE + (url.startsWith('/') ? url : '/' + url);
+        }
+
         function gradeMeta(grade) {
             const map = {
                 0: { label: "Aucune rétinopathie diabétique", degree: "Aucune rétinopathie diabétique", cls: "severity-none" },
@@ -534,9 +543,9 @@
             const meta = gradeMeta(eye.grade);
             const chars = characteristicMap(eye.grade);
             const confidence = typeof eye.confidence === 'number' ? eye.confidence.toFixed(1) : '-';
-            const original = eye.image_display_url || eye.image_preview_url || eye.image_url || '';
-            const originalDownload = eye.image_url || '';
-            const heatmap = eye.heatmap_url || eye.image_preview_url || eye.image_url || '';
+            const original = toAbsUrl(eye.image_display_url || eye.image_preview_url || eye.image_url || '');
+            const originalDownload = toAbsUrl(eye.image_url || '');
+            const heatmap = toAbsUrl(eye.heatmap_url || eye.image_preview_url || eye.image_url || '');
 
             const detectedHtml = chars.detected.length
                 ? chars.detected.map(item => `<li><i class=\"fas fa-check-circle\"></i>${item}</li>`).join('')
@@ -568,7 +577,7 @@
                         <div class="eye-image-panel">
                             <div class="eye-image-title">Image originale</div>
                             <img class="clickable-eye-image" data-viewer-title="Image originale - ${EYE_LABELS[eye.eye_type] || eye.eye_type}" src="${original}" alt="Image originale ${EYE_LABELS[eye.eye_type] || eye.eye_type}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            ${eye.image_url ? `<div style="margin-top:6px"><a href="${eye.image_url}" target="_blank" rel="noopener">Télécharger l'original</a></div>` : ''}
+                            ${eye.image_url ? `<div style="margin-top:6px"><a href="${originalDownload}" target="_blank" rel="noopener">Télécharger l'original</a></div>` : ''}
                             <div class="eye-image-fallback">Image indisponible</div>
                         </div>
                         <div class="eye-image-panel">

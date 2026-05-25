@@ -539,7 +539,7 @@ router.post('/centers', async (req, res) => {
         const center = await db.queryOne('SELECT * FROM centers WHERE id = ?', [centerId]);
 
         // Send activation email (non-blocking) to CENTER email with admin credentials info
-        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/activate?token=${activationToken}`;
+        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/views/activate.html?token=${activationToken}`;
         const emailPromise = sendCenterAdminActivationEmail(email, adminEmail, adminName, activationLink);
         emailPromise.catch((err) => console.error('Activation email error:', err));
 
@@ -800,7 +800,7 @@ router.put('/admins/:id/reset-password', async (req, res) => {
             is_active: 0
         }, 'id = ?', [adminId]);
 
-        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/activate?token=${activationToken}`;
+        const activationLink = `${process.env.APP_URL || 'http://localhost:3000'}/views/activate.html?token=${activationToken}`;
         const emailPromise = sendActivationEmail(adminRow.email, adminRow.name, activationLink);
         emailPromise.catch((err) => console.error('Activation email error:', err));
 
