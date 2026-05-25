@@ -6,6 +6,7 @@ const express = require('express');
 const db = require('../config/database');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 const { syncPatientToSupabase, shouldSyncToSupabase } = require('../services/supabaseSync');
+const supabaseStorage = require('../services/supabaseStorage');
 
 const router = express.Router();
 
@@ -37,8 +38,8 @@ router.get('/debug/pending-all-public', async (req, res) => {
                 medical_history: exam.medical_history,
                 eye_type: exam.eye,
                 notes: exam.notes,
-                image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                image_display_url: `/api/exams/${exam.id}/preview-image`,
+                image_url: resolveFileUrl(exam.image_path),
+                image_display_url: supabaseStorage.isStorageUrl(exam.image_path) ? exam.image_path : `/api/exams/${exam.id}/preview-image`,
                 created_at: exam.created_at,
                 doctor_id: exam.doctor_id,
                 status: exam.is_new_for_doctor ? 'nouveau' : 'en_attente'
@@ -83,8 +84,8 @@ router.get('/debug/pending-all', async (req, res) => {
                 medical_history: exam.medical_history,
                 eye_type: exam.eye,
                 notes: exam.notes,
-                image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                image_display_url: `/api/exams/${exam.id}/preview-image`,
+                image_url: resolveFileUrl(exam.image_path),
+                image_display_url: supabaseStorage.isStorageUrl(exam.image_path) ? exam.image_path : `/api/exams/${exam.id}/preview-image`,
                 created_at: exam.created_at,
                 doctor_id: exam.doctor_id,
                 status: exam.is_new_for_doctor ? 'nouveau' : 'en_attente'
@@ -116,7 +117,10 @@ const GRADE_CLASSES = {
 
 const toUrlPath = (filePath) => {
     if (!filePath) return null;
-    let normalized = String(filePath).replace(/\\/g, '/');
+    const str = String(filePath);
+    // Already a full URL (Supabase Storage) — return as-is
+    if (str.startsWith('http://') || str.startsWith('https://')) return str;
+    let normalized = str.replace(/\\/g, '/');
     const uploadsMarker = '/uploads/';
     const markerIndex = normalized.lastIndexOf(uploadsMarker);
     if (markerIndex >= 0) {
@@ -132,9 +136,19 @@ const toUrlPath = (filePath) => {
 const fs = require('fs');
 
 const toVersionedUrlPath = (filePath) => {
+    if (!filePath) return null;
+    if (supabaseStorage.isStorageUrl(filePath)) return filePath;
     const normalized = toUrlPath(filePath);
     if (!normalized) return null;
     return `/uploads/${normalized}?v=${Date.now()}`;
+};
+
+// Resolve a stored path to a usable URL (Supabase URL or local /uploads/... path)
+const resolveFileUrl = (storedPath) => {
+    if (!storedPath) return null;
+    if (supabaseStorage.isStorageUrl(storedPath)) return storedPath;
+    const rel = toUrlPath(storedPath);
+    return rel ? `/uploads/${rel}` : null;
 };
 
 const fileExists = (relativePath) => {
@@ -565,7 +579,7 @@ router.get('/patients/:id', async (req, res) => {
                     notes: e.notes,
                     exam_date: e.created_at,
                     created_at: e.created_at,
-                    image_url: e.image_path ? `/uploads/${toUrlPath(e.image_path)}` : null
+                    image_url: e.image_path ? resolveFileUrl(e.image_path) : null
                 })),
                 created_at: patient.created_at
             }
@@ -944,9 +958,9 @@ router.get('/exams/:id', async (req, res) => {
                     grade_class: GRADE_CLASSES[pairedExam.grade],
                     confidence: normalizeConfidence(pairedExam.confidence, pairedExam.grade),
                     created_at: pairedExam.created_at,
-                    image_url: `/uploads/${toUrlPath(pairedExam.image_path)}`,
-                    image_display_url: `/api/exams/${pairedExam.id}/preview-image`,
-                        heatmap_url: toVersionedUrlPath(pairedExam.heatmap_path || pairedExam.image_path)
+                    image_url: resolveFileUrl(pairedExam.image_path),
+                    image_display_url: supabaseStorage.isStorageUrl(pairedExam.image_path) ? pairedExam.image_path : `/api/exams/${pairedExam.id}/preview-image`,
+                    heatmap_url: toVersionedUrlPath(pairedExam.heatmap_path || pairedExam.image_path)
                 };
             } else {
                 pairedExamData = { exists: false, eye_type: oppositeEye };
@@ -962,11 +976,13 @@ router.get('/exams/:id', async (req, res) => {
                 eye_type: exam.eye,
                 notes: exam.notes,
                 doctor_report_notes: exam.doctor_report_notes,
-                image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                image_display_url: `/api/exams/${exam.id}/preview-image`,
+                image_url: resolveFileUrl(exam.image_path),
+                image_display_url: supabaseStorage.isStorageUrl(exam.image_path) ? exam.image_path : `/api/exams/${exam.id}/preview-image`,
                 heatmap_url: toVersionedUrlPath(exam.heatmap_path || exam.image_path),
                 image_preview_url: (function() {
                     try {
+                        // If stored in Supabase Storage, use it directly as the preview
+                        if (supabaseStorage.isStorageUrl(exam.image_path)) return exam.image_path;
                         const previewRel = String(exam.image_path || '').replace(/\.[^.]+$/, '_preview.jpg');
                         if (previewRel && fs.existsSync(path.join(__dirname, '../../', previewRel))) {
                             return `/uploads/${toUrlPath(previewRel)}?v=${Date.now()}`;
@@ -1106,8 +1122,8 @@ router.get('/pending', async (req, res) => {
                 medical_history: exam.medical_history,
                 eye_type: exam.eye,
                 notes: exam.notes,
-                image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                image_display_url: `/api/exams/${exam.id}/preview-image`,
+                image_url: resolveFileUrl(exam.image_path),
+                image_display_url: supabaseStorage.isStorageUrl(exam.image_path) ? exam.image_path : `/api/exams/${exam.id}/preview-image`,
                 created_at: exam.created_at,
                 status: exam.is_new_for_doctor ? 'nouveau' : 'en_attente'
             };

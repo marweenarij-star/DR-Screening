@@ -13,6 +13,7 @@ const mailService = require('../services/mailService');
 const smsService = require('../services/smsService');
 const { notifyNewExam, notifyNewAlert } = require('../services/websocket');
 const { syncExamToSupabase, syncAlertToSupabase, shouldSyncToSupabase } = require('../services/supabaseSync');
+const supabaseStorage = require('../services/supabaseStorage');
 
 const router = express.Router();
 
@@ -133,7 +134,10 @@ const GRADE_CLASSES = {
 // Also strips the 'uploads/' or 'uploads\' prefix if present since we add it back
 const toUrlPath = (filePath) => {
     if (!filePath) return null;
-    let normalized = String(filePath).replace(/\\/g, '/');
+    // If already a full URL (Supabase Storage), return as-is
+    const str = String(filePath);
+    if (str.startsWith('http://') || str.startsWith('https://')) return str;
+    let normalized = str.replace(/\\/g, '/');
     const uploadsMarker = '/uploads/';
     const markerIndex = normalized.lastIndexOf(uploadsMarker);
     if (markerIndex >= 0) {
@@ -149,6 +153,8 @@ const toUrlPath = (filePath) => {
 const toVersionedUrlPath = (filePath) => {
     const normalized = toUrlPath(filePath);
     if (!normalized) return null;
+    // Already a full URL (Supabase Storage) — return as-is
+    if (supabaseStorage.isStorageUrl(normalized)) return normalized;
     const absolutePath = path.join(__dirname, '../../', normalized);
     let version = Date.now();
     try {
@@ -159,6 +165,23 @@ const toVersionedUrlPath = (filePath) => {
         version = Date.now();
     }
     return `/uploads/${normalized}?v=${version}`;
+};
+
+// Resolve a stored image_path or heatmap_path to the correct URL.
+// If it's already a Supabase Storage URL, use it directly.
+// Otherwise fall back to a local /uploads/... path.
+const resolveFileUrl = (storedPath) => {
+    if (!storedPath) return null;
+    if (supabaseStorage.isStorageUrl(storedPath)) return storedPath;
+    const rel = toUrlPath(storedPath);
+    return rel ? `/uploads/${rel}` : null;
+};
+
+// Resolve the display URL for an exam image (used as img src).
+// Prefers Supabase Storage URL; falls back to backend preview endpoint.
+const resolveDisplayUrl = (storedPath, examId) => {
+    if (storedPath && supabaseStorage.isStorageUrl(storedPath)) return storedPath;
+    return `/api/exams/${examId}/preview-image`;
 };
 
 router.use(authMiddleware);
@@ -274,9 +297,14 @@ router.post('/submit', roleMiddleware('center_admin'), upload.single('image'), a
         const finalImagePath = moveUploadToPatientFolder(req.file, patient_id, eyeValue);
         createdImagePath = finalImagePath;
 
-        // Relative path for database
-        const imagePath = path.relative(path.join(__dirname, '../../'), finalImagePath);
+        // Relative path for database (fallback if Supabase upload fails)
+        let imagePath = path.relative(path.join(__dirname, '../../'), finalImagePath);
         const fullImagePath = finalImagePath;
+
+        // Upload to Supabase Storage for persistent storage (free, survives Render restarts)
+        const storageKey = `exams/patient_${patient_id}/${path.basename(finalImagePath)}`;
+        const storageUrl = await supabaseStorage.uploadFile(finalImagePath, storageKey, req.file.mimetype || 'image/jpeg');
+        if (storageUrl) imagePath = storageUrl;
         
         // Create exam with status 'pending' (grade = -1 means not analyzed yet)
         const initialGrade = -1;
@@ -426,8 +454,16 @@ router.post(
             createdImagePathRight = finalImagePathOd;
             createdImagePathLeft = finalImagePathOg;
 
-            const imagePathOd = path.relative(path.join(__dirname, '../../'), finalImagePathOd);
-            const imagePathOg = path.relative(path.join(__dirname, '../../'), finalImagePathOg);
+            let imagePathOd = path.relative(path.join(__dirname, '../../'), finalImagePathOd);
+            let imagePathOg = path.relative(path.join(__dirname, '../../'), finalImagePathOg);
+
+            // Upload to Supabase Storage for persistent storage
+            const [storageUrlOd, storageUrlOg] = await Promise.all([
+                supabaseStorage.uploadFile(finalImagePathOd, `exams/patient_${patient_id}/${path.basename(finalImagePathOd)}`, fileOd.mimetype || 'image/jpeg'),
+                supabaseStorage.uploadFile(finalImagePathOg, `exams/patient_${patient_id}/${path.basename(finalImagePathOg)}`, fileOg.mimetype || 'image/jpeg')
+            ]);
+            if (storageUrlOd) imagePathOd = storageUrlOd;
+            if (storageUrlOg) imagePathOg = storageUrlOg;
 
             // Create two exams (right and left) with status 'pending' (grade = -1 means not analyzed yet)
             const initialGrade = -1;
@@ -604,14 +640,28 @@ async function autoAnalyzeExam(examId, fullImagePath, patientName, centerId, doc
                 fs.writeFileSync(gradcamPath, gradcamBuffer);
                 gradcamRelPath = path.relative(path.join(__dirname, '../../'), gradcamPath);
                 console.log(`Grad-CAM saved for exam ${examId}: ${gradcamRelPath}`);
+
+                // Upload gradcam to Supabase Storage
+                const gradcamKey = `gradcam/exam_${examId}_gradcam.png`;
+                const gradcamUrl = await supabaseStorage.uploadBuffer(gradcamBuffer, gradcamKey, 'image/png');
+                if (gradcamUrl) {
+                    gradcamRelPath = gradcamUrl;
+                    console.log(`Grad-CAM stored in Supabase Storage: ${gradcamUrl}`);
+                }
             }
         } catch (gradcamError) {
             console.error(`Grad-CAM generation failed for exam ${examId}:`, gradcamError);
         }
 
         // Fallback: keep visualization available even if Grad-CAM generation fails.
+        // If image_path is already a Supabase URL, use it directly as heatmap fallback.
         if (!gradcamRelPath) {
-            gradcamRelPath = path.relative(path.join(__dirname, '../../'), fullImagePath);
+            const examForFallback = await db.queryOne('SELECT image_path FROM exams WHERE id = ?', [examId]);
+            if (examForFallback && supabaseStorage.isStorageUrl(examForFallback.image_path)) {
+                gradcamRelPath = examForFallback.image_path;
+            } else {
+                gradcamRelPath = path.relative(path.join(__dirname, '../../'), fullImagePath);
+            }
             console.warn(`Grad-CAM unavailable for exam ${examId}, fallback to original image`);
         }
         
@@ -766,28 +816,37 @@ router.post('/:id/analyze', roleMiddleware('doctor'), async (req, res) => {
                     confidence: parseFloat(exam.confidence) || 0,
                     grade_label: GRADE_LABELS[exam.grade],
                     is_urgent: exam.grade >= 3,
-                    image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                    image_display_url: `/api/exams/${exam.id}/preview-image`,
+                    image_url: resolveFileUrl(exam.image_path),
+                    image_display_url: resolveDisplayUrl(exam.image_path, exam.id),
                     heatmap_url: exam.heatmap_path ? toVersionedUrlPath(exam.heatmap_path) : null,
                     already_analyzed: true
                 }
             });
         }
         
-        // Get full image path
-        const fullImagePath = path.join(__dirname, '../../', exam.image_path);
-        
+        // Get full image path — handle both Supabase URLs and local paths
+        const isRemoteImage = supabaseStorage.isStorageUrl(exam.image_path);
+        const fullImagePath = isRemoteImage
+            ? exam.image_path  // Will need to be downloaded for local AI processing
+            : path.join(__dirname, '../../', exam.image_path);
+
         // Get AI prediction
         const prediction = await aiService.predict(fullImagePath);
-        
+
         // Get Grad-CAM
         let gradcamPath = null;
         let gradcamRelPath = null;
         const gradcamBuffer = await aiService.getGradCAM(fullImagePath, prediction.grade);
         if (gradcamBuffer) {
-            gradcamPath = fullImagePath.replace(/\.[^.]+$/, '_gradcam.png');
-            fs.writeFileSync(gradcamPath, gradcamBuffer);
-            gradcamRelPath = path.relative(path.join(__dirname, '../../'), gradcamPath);
+            if (!isRemoteImage) {
+                gradcamPath = fullImagePath.replace(/\.[^.]+$/, '_gradcam.png');
+                fs.writeFileSync(gradcamPath, gradcamBuffer);
+                gradcamRelPath = path.relative(path.join(__dirname, '../../'), gradcamPath);
+            }
+            // Upload gradcam to Supabase Storage
+            const gradcamKey = `gradcam/exam_${examId}_gradcam.png`;
+            const gradcamUrl = await supabaseStorage.uploadBuffer(gradcamBuffer, gradcamKey, 'image/png');
+            if (gradcamUrl) gradcamRelPath = gradcamUrl;
         }
         
         // Update exam with results
@@ -863,12 +922,12 @@ router.post('/:id/analyze', roleMiddleware('doctor'), async (req, res) => {
                 confidence: prediction.confidence,
                 grade_label: GRADE_LABELS[prediction.grade],
                 is_urgent: prediction.grade >= 3,
-                image_url: `/uploads/${toUrlPath(exam.image_path)}`,
-                image_display_url: `/api/exams/${examId}/preview-image`,
+                image_url: resolveFileUrl(exam.image_path),
+                image_display_url: resolveDisplayUrl(exam.image_path, examId),
                 heatmap_url: gradcamRelPath ? toVersionedUrlPath(gradcamRelPath) : null
             }
         });
-        
+
     } catch (error) {
         console.error('Analyze exam error:', error);
         res.status(500).json({ success: false, error: error.message || 'Erreur serveur' });
@@ -994,8 +1053,8 @@ router.post('/', roleMiddleware('center_admin'), upload.single('image'), async (
                 confidence: prediction.confidence,
                 grade_label: GRADE_LABELS[prediction.grade],
                 is_urgent: prediction.grade >= 3,
-                image_path: `/uploads/${imagePath}`,
-                gradcam_path: gradcamRelPath ? `/uploads/${gradcamRelPath}` : null
+                image_path: resolveFileUrl(imagePath),
+                gradcam_path: gradcamRelPath ? resolveFileUrl(gradcamRelPath) : null
             }
         });
         
@@ -1032,7 +1091,8 @@ router.get('/:id', async (req, res) => {
             confidence: parseFloat(exam.confidence) || 0,
             eye_type: exam.eye,
             notes: exam.notes,
-            image_url: `/uploads/${toUrlPath(exam.image_path)}`,
+            image_url: resolveFileUrl(exam.image_path),
+            image_display_url: resolveDisplayUrl(exam.image_path, exam.id),
             image_preview_url: null,
             heatmap_url: exam.heatmap_path ? toVersionedUrlPath(exam.heatmap_path) : null,
             overlay_url: null,
@@ -1054,12 +1114,18 @@ router.get('/:id', async (req, res) => {
             created_at: exam.created_at
         };
 
-        // If a JPEG preview exists next to the original image, expose it as image_preview_url
+        // Resolve preview URL:
+        // - If image is in Supabase Storage, use it directly as the preview
+        // - Otherwise check if a local JPEG preview exists next to the original
         try {
-            const previewRel = String(exam.image_path || '').replace(/\.[^.]+$/, '_preview.jpg');
-            const previewAbs = path.join(__dirname, '../../', previewRel);
-            if (previewRel && fs.existsSync(previewAbs)) {
-                result.image_preview_url = `/uploads/${toUrlPath(previewRel)}`;
+            if (supabaseStorage.isStorageUrl(exam.image_path)) {
+                result.image_preview_url = exam.image_path;
+            } else {
+                const previewRel = String(exam.image_path || '').replace(/\.[^.]+$/, '_preview.jpg');
+                const previewAbs = path.join(__dirname, '../../', previewRel);
+                if (previewRel && fs.existsSync(previewAbs)) {
+                    result.image_preview_url = `/uploads/${toUrlPath(previewRel)}`;
+                }
             }
         } catch (e) {
             // ignore
