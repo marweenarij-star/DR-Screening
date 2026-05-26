@@ -242,6 +242,10 @@ router.get('/patients-summary', async (req, res) => {
         const perPage = parseInt(req.query.per_page) || 50;
         const search = req.query.search || '';
 
+        // "Patients suivis" shows every patient this doctor created OR has ever examined.
+        // Do NOT filter by is_new_for_doctor/grade here — consulting an exam clears that
+        // flag, and filtering on it would make consulted patients disappear from the list.
+        // The per-row status badge (nouveau / en_attente / consulte) reflects exam state.
         let where = `(
             p.created_by_doctor_id = ?
             OR EXISTS (
@@ -249,7 +253,6 @@ router.get('/patients-summary', async (req, res) => {
                 FROM exams e0
                 WHERE e0.patient_id = p.id
                   AND e0.doctor_id = ?
-                  AND (e0.grade = -1 OR (e0.grade >= 0 AND COALESCE(e0.is_new_for_doctor, 0) = 1))
             )
         )`;
         let params = [doctorId, doctorId];
