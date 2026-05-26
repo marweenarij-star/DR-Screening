@@ -1,11 +1,27 @@
 /**
- * SQLite Database Initialization
+ * Database Initialization (SQLite or PostgreSQL)
  */
 
 const database = require('./database');
 const db = database.db;
 
+async function initPostgres() {
+    const { SCHEMA_SQL } = require('./pgSchema');
+    // Run each statement separately so it works across Supabase pooler modes
+    // (the transaction pooler doesn't allow multi-statement simple queries).
+    const statements = SCHEMA_SQL.split(';').map((s) => s.trim()).filter(Boolean);
+    for (const stmt of statements) {
+        await database.raw(stmt);
+    }
+    console.log(`✓ PostgreSQL schema ensured (${statements.length} statements)`);
+}
+
 async function initDatabase() {
+    // PostgreSQL path: schema is idempotent and persistent — no SQLite migrations.
+    if (process.env.DATABASE_URL) {
+        return initPostgres();
+    }
+
     const tables = [
         `CREATE TABLE IF NOT EXISTS centers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,6 +1,18 @@
 /**
- * Database Configuration - SQLite (no server required)
+ * Database Configuration.
+ *
+ * If DATABASE_URL is set (e.g. a Supabase Postgres connection string), use the
+ * persistent Postgres adapter. Otherwise fall back to local SQLite — handy for
+ * offline/local development.
  */
+
+if (process.env.DATABASE_URL) {
+    console.log('[database] Using PostgreSQL (DATABASE_URL detected)');
+    module.exports = require('./pgDatabase');
+    return;
+}
+
+console.log('[database] Using SQLite (no DATABASE_URL)');
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');

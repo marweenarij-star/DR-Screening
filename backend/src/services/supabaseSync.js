@@ -69,6 +69,10 @@ function mapAlert(alert) {
 }
 
 async function shouldSyncToSupabase(centerId) {
+    // When Postgres (Supabase) is the primary database, rows are already stored
+    // there directly — the legacy REST mirror is redundant and can cause schema
+    // mismatches (e.g. the centers 'mamode' mapping), so skip it entirely.
+    if (process.env.DATABASE_URL) return false;
     if (!centerId) return false;
     const center = await db.queryOne('SELECT mode FROM centers WHERE id = ?', [centerId]);
     return center && center.mode === 'full_platform';

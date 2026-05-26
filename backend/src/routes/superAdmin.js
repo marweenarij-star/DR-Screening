@@ -240,8 +240,8 @@ router.get('/alerts', async (req, res) => {
              FROM centers c
              LEFT JOIN exams e ON e.center_id = c.id
              GROUP BY c.id
-             HAVING last_screening_at IS NULL OR datetime(last_screening_at) < datetime('now', ?)
-             ORDER BY CASE WHEN last_screening_at IS NULL THEN 0 ELSE 1 END, last_screening_at ASC, c.name ASC`,
+             HAVING MAX(e.created_at) IS NULL OR datetime(MAX(e.created_at)) < datetime('now', ?)
+             ORDER BY CASE WHEN MAX(e.created_at) IS NULL THEN 0 ELSE 1 END, MAX(e.created_at) ASC, c.name ASC`,
             [staleModifier]
         );
 
@@ -255,8 +255,8 @@ router.get('/alerts', async (req, res) => {
              FROM centers c
              LEFT JOIN exams e ON e.center_id = c.id AND e.grade = -1
              GROUP BY c.id
-             HAVING pending_count >= ?
-             ORDER BY pending_count DESC, c.name ASC`,
+             HAVING COUNT(e.id) >= ?
+             ORDER BY COUNT(e.id) DESC, c.name ASC`,
             [pendingThreshold]
         );
 
