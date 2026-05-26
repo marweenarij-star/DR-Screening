@@ -163,6 +163,27 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Database diagnostics — reports which backend is active and runs a live query
+app.get('/api/debug/db', async (req, res) => {
+    const backend = process.env.DATABASE_URL ? 'postgres' : 'sqlite';
+    try {
+        const userCount = await db.queryOne('SELECT COUNT(*) AS count FROM users');
+        const examCount = await db.queryOne('SELECT COUNT(*) AS count FROM exams');
+        const patientCount = await db.queryOne('SELECT COUNT(*) AS count FROM patients');
+        res.json({
+            ok: true,
+            backend,
+            counts: {
+                users: userCount ? userCount.count : null,
+                patients: patientCount ? patientCount.count : null,
+                exams: examCount ? examCount.count : null
+            }
+        });
+    } catch (err) {
+        res.json({ ok: false, backend, error: err.message });
+    }
+});
+
 // SMTP diagnostics — GET (browser-friendly) shows config; POST also sends a test email
 app.get('/api/debug/smtp-test', async (req, res) => {
     const smtpUser = process.env.SMTP_USER || '';
