@@ -354,35 +354,50 @@ def load_model():
 
         # Attempt to load local models (ResNet / EfficientNet)
         try:
+            def _load_state_dict(ckpt_path):
+                """Load checkpoint robustly — handles raw state dict or wrapped {'model_state_dict': ...}."""
+                ck = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+                if isinstance(ck, dict):
+                    for key in ('model_state_dict', 'state_dict', 'model'):
+                        if key in ck:
+                            logger.info(f'Checkpoint {ckpt_path.name}: using key "{key}"')
+                            return ck[key]
+                    # No known wrapper key — assume the whole dict IS the state dict
+                    logger.info(f'Checkpoint {ckpt_path.name}: no wrapper key found, treating as raw state dict')
+                    return ck
+                return ck  # non-dict (OrderedDict etc.)
+
             if LOCAL_RES_PATH.exists():
-                ck = torch.load(str(LOCAL_RES_PATH), map_location=device, weights_only=False)
+                sd = _load_state_dict(LOCAL_RES_PATH)
                 local = _DRResNet50(num_classes=5)
-                local.load_state_dict(ck['model_state_dict'])
+                local.load_state_dict(sd, strict=True)
                 local.to(device).eval()
                 globals()['local_resnet'] = local
                 resnet_gradcam_extractor = ResNetGradCAM(local)
-                logger.info('Loaded local ResNet50 model')
+                logger.info('✓ Loaded local ResNet50 model')
             else:
                 logger.warning(f'ResNet model not found at {LOCAL_RES_PATH}')
 
             if LOCAL_EFF_PATH.exists() and _DREfficientNetB3 is not None:
-                ck2 = torch.load(str(LOCAL_EFF_PATH), map_location=device, weights_only=False)
+                sd2 = _load_state_dict(LOCAL_EFF_PATH)
                 le = _DREfficientNetB3(num_classes=5)
-                le.load_state_dict(ck2['model_state_dict'])
+                le.load_state_dict(sd2, strict=True)
                 le.to(device).eval()
                 globals()['local_eff'] = le
-                logger.info('Loaded local EfficientNetB3 model')
+                logger.info('✓ Loaded local EfficientNetB3 model')
             elif not LOCAL_EFF_PATH.exists():
                 logger.warning(f'EfficientNet model not found at {LOCAL_EFF_PATH}')
+            elif _DREfficientNetB3 is None:
+                logger.warning('timm not available — EfficientNetB3 skipped')
 
             # Load ensemble weights if present
             if ENSEMBLE_WEIGHTS_PATH.exists():
                 try:
                     lw = json.load(open(ENSEMBLE_WEIGHTS_PATH))
                     globals()['local_weights'] = lw
-                    logger.info(f'Loaded ensemble weights: {lw}')
-                except Exception:
-                    pass
+                    logger.info(f'✓ Loaded ensemble weights: {lw}')
+                except Exception as ew:
+                    logger.warning(f'Could not load ensemble weights: {ew}')
         except Exception as e:
             logger.warning(f'Could not load local models: {e}')
             import traceback; traceback.print_exc()

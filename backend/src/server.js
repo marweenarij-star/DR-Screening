@@ -59,7 +59,13 @@ app.get('/api/exams/:id/preview-image', async (req, res) => {
         const exam = await db.queryOne('SELECT image_path FROM exams WHERE id = ?', [id]);
         if (!exam || !exam.image_path) return res.status(404).json({ success: false, error: 'Examen non trouvé' });
 
-        const rel = String(exam.image_path || '');
+        // If the image is already stored in Supabase (or any remote URL), redirect there directly
+        const imgPath = String(exam.image_path || '');
+        if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
+            return res.redirect(imgPath);
+        }
+
+        const rel = imgPath;
 
         // Try both project-root-relative and backend-relative locations
         const candidateOriginalProject = path.join(__dirname, '../../', rel);
@@ -157,7 +163,36 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// SMTP diagnostics — open endpoint for debugging (remove once SMTP is confirmed working)
+// SMTP diagnostics — GET (browser-friendly) shows config; POST also sends a test email
+app.get('/api/debug/smtp-test', async (req, res) => {
+    const smtpUser = process.env.SMTP_USER || '';
+    const smtpPass = process.env.SMTP_PASS || '';
+    const config = {
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        user: smtpUser,
+        passLength: smtpPass.length,
+        passSet: !!smtpPass,
+        appUrl: process.env.APP_URL || '(not set)'
+    };
+    if (!smtpUser || !smtpPass) {
+        return res.json({ ok: false, config, error: 'SMTP_USER or SMTP_PASS not set in Render environment' });
+    }
+    try {
+        const nodemailer = require('nodemailer');
+        const t = nodemailer.createTransport({
+            host: config.host, port: config.port,
+            secure: config.port === 465,
+            auth: { user: smtpUser, pass: smtpPass },
+            tls: { rejectUnauthorized: false }
+        });
+        await t.verify();
+        res.json({ ok: true, config, message: 'SMTP connection OK — POST to this URL with {"to":"email"} to send a test email' });
+    } catch (err) {
+        res.json({ ok: false, config, error: err.message, code: err.code });
+    }
+});
+
 app.post('/api/debug/smtp-test', async (req, res) => {
     const { to } = req.body;
     const smtpUser = process.env.SMTP_USER || '';

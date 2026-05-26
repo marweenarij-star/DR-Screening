@@ -879,7 +879,8 @@
                 confidence: Number(exam.confidence || 0),
                 image_url: exam.image_url,
                 image_preview_url: exam.image_preview_url || null,
-                image_display_url: exam.image_preview_url || `/api/exams/${exam.id}/preview-image`,
+                // Use server-provided display URL first, then preview URL, then fallback to preview endpoint
+                image_display_url: exam.image_display_url || exam.image_preview_url || `/api/exams/${exam.id}/preview-image`,
                 heatmap_url: exam.heatmap_url
             });
 
@@ -889,8 +890,9 @@
                     grade: Number(exam.paired_exam.grade),
                     confidence: Number(exam.paired_exam.confidence || 0),
                     image_url: exam.paired_exam.image_url,
-                    image_preview_url: exam.paired_exam.image_preview_url || null,
-                    image_display_url: exam.paired_exam.image_preview_url || `/api/exams/${exam.paired_exam.id || exam.id}/preview-image`,
+                    image_preview_url: exam.paired_exam.image_display_url || null,
+                    // Use server-provided display URL first, then fallback to preview endpoint with correct paired exam ID
+                    image_display_url: exam.paired_exam.image_display_url || `/api/exams/${exam.paired_exam.id}/preview-image`,
                     heatmap_url: exam.paired_exam.heatmap_url
                 });
             }
