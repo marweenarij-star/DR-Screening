@@ -1,14 +1,19 @@
 /**
- * Email Service using Nodemailer
+ * Email Service
+ *
+ * Primary transport: Brevo HTTP API (port 443) — used in production because
+ * hosts like Render's free tier block outbound SMTP ports (25/465/587).
+ * Fallback transport: SMTP via Nodemailer — used locally where SMTP works.
  */
 
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 // Create transporter dynamically to ensure env vars are loaded
 function getTransporter() {
     const port = parseInt(process.env.SMTP_PORT || '587');
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    
+
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: port,
@@ -23,6 +28,49 @@ function getTransporter() {
     });
 }
 
+// Send via Brevo's transactional email HTTP API (works where SMTP is blocked).
+function sendViaBrevo(to, subject, html) {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER || process.env.SMTP_FROM || process.env.SMTP_USER;
+    const senderName = process.env.SMTP_FROM_NAME || 'DR Screening';
+
+    const payload = JSON.stringify({
+        sender: { email: senderEmail, name: senderName },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html
+    });
+
+    return new Promise((resolve) => {
+        const req = https.request({
+            hostname: 'api.brevo.com',
+            path: '/v3/smtp/email',
+            method: 'POST',
+            headers: {
+                'api-key': apiKey,
+                'content-type': 'application/json',
+                'accept': 'application/json',
+                'content-length': Buffer.byteLength(payload)
+            }
+        }, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    console.log('Brevo email sent to:', to);
+                    resolve(true);
+                } else {
+                    console.error('Brevo error', res.statusCode, body);
+                    resolve(false);
+                }
+            });
+        });
+        req.on('error', (err) => { console.error('Brevo request error:', err.message); resolve(false); });
+        req.write(payload);
+        req.end();
+    });
+}
+
 const GRADE_LABELS = {
     0: 'Pas de Rétinopathie Diabétique',
     1: 'Rétinopathie Diabétique Légère',
@@ -32,13 +80,18 @@ const GRADE_LABELS = {
 };
 
 async function sendEmail(to, subject, html) {
+    // Prefer Brevo HTTP API when configured (works on hosts that block SMTP ports).
+    if (process.env.BREVO_API_KEY) {
+        return sendViaBrevo(to, subject, html);
+    }
+
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.log('Email not configured, skipping:', subject);
         return false;
     }
-    
+
     console.log('SMTP Config:', process.env.SMTP_USER, 'Pass length:', process.env.SMTP_PASS?.length);
-    
+
     try {
         const transporter = getTransporter();
         await transporter.sendMail({

@@ -21,9 +21,6 @@ pydicom>=2.4.4
 numpy>=1.26.0
 torch>=2.0.0
 torchvision>=0.15.0
-# Pinned to match the version used to train the EfficientNetB3 checkpoint.
-# A different timm version renames internal efficientnet_b3 layers and breaks load_state_dict.
-timm==1.0.24
 
 # --- HuggingFace (ViT model download) ---
 transformers>=4.35.0

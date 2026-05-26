@@ -138,39 +138,35 @@ class _DRResNet50(nn.Module):
         return self.backbone(x)
 
 
-try:
-    import timm as _timm_mod
+class _DREfficientNetB3(nn.Module):
+    """EfficientNetB3 (torchvision) DR classifier — EXACT match to training/train_efficientnet.py.
 
-    class _DREfficientNetB3(nn.Module):
-        """EfficientNetB3-based DR classifier — same architecture used during training."""
+    The checkpoint was trained with torchvision.models.efficientnet_b3 (keys
+    'backbone.features.*' + a replaced 'backbone.classifier' head), NOT timm.
+    """
 
-        def __init__(self, num_classes=5, drop_rate=0.5, pretrained=False):
-            super().__init__()
-            self.backbone = _timm_mod.create_model(
-                'efficientnet_b3', pretrained=False, num_classes=0, global_pool='avg'
-            )
-            self.num_features = self.backbone.num_features  # 1536
-            self.classifier = nn.Sequential(
-                nn.BatchNorm1d(self.num_features),
-                nn.Dropout(drop_rate),
-                nn.Linear(self.num_features, 512),
-                nn.ReLU(inplace=True),
-                nn.BatchNorm1d(512),
-                nn.Dropout(drop_rate * 0.6),
-                nn.Linear(512, 256),
-                nn.ReLU(inplace=True),
-                nn.Dropout(drop_rate * 0.4),
-                nn.Linear(256, num_classes),
-            )
+    def __init__(self, num_classes=5, drop_rate=0.5):
+        super().__init__()
+        self.backbone = _tv_models.efficientnet_b3(weights=None)
+        num_features = self.backbone.classifier[1].in_features  # 1536
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(drop_rate, inplace=True),
+            nn.Linear(num_features, 512),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm1d(512),
+            nn.Dropout(drop_rate * 0.6),
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(drop_rate * 0.4),
+            nn.Linear(256, num_classes),
+        )
 
-        def forward(self, x):
-            return self.classifier(self.backbone(x))
+    def forward(self, x):
+        return self.backbone(x)
 
-except ImportError:
-    _timm_mod = None
-    _DREfficientNetB3 = None
-    logger_tmp = logging.getLogger(__name__)
-    logger_tmp.warning('timm not installed — EfficientNet ensemble arm disabled')
+
+# Kept for the /debug/models endpoint; EfficientNet no longer needs timm.
+_timm_mod = None
 # ────────────────────────────────────────────────────────────────────────────
 
 

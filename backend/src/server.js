@@ -168,6 +168,8 @@ app.get('/api/debug/smtp-test', async (req, res) => {
     const smtpUser = process.env.SMTP_USER || '';
     const smtpPass = process.env.SMTP_PASS || '';
     const config = {
+        brevoConfigured: !!process.env.BREVO_API_KEY,
+        brevoSender: process.env.BREVO_SENDER || process.env.SMTP_FROM || smtpUser || '(not set)',
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587'),
         user: smtpUser,
@@ -175,8 +177,12 @@ app.get('/api/debug/smtp-test', async (req, res) => {
         passSet: !!smtpPass,
         appUrl: process.env.APP_URL || '(not set)'
     };
+    // Brevo is the active transport when configured — no SMTP connection to verify.
+    if (process.env.BREVO_API_KEY) {
+        return res.json({ ok: true, transport: 'brevo', config, message: 'Brevo HTTP API configured. POST {"to":"email"} to send a test email.' });
+    }
     if (!smtpUser || !smtpPass) {
-        return res.json({ ok: false, config, error: 'SMTP_USER or SMTP_PASS not set in Render environment' });
+        return res.json({ ok: false, config, error: 'No BREVO_API_KEY and SMTP_USER/SMTP_PASS not set' });
     }
     try {
         const nodemailer = require('nodemailer');
@@ -202,6 +208,7 @@ app.post('/api/debug/smtp-test', async (req, res) => {
 
     // Show config (mask password)
     const config = {
+        brevoConfigured: !!process.env.BREVO_API_KEY,
         host: smtpHost,
         port: smtpPort,
         secure: process.env.SMTP_SECURE === 'true' || smtpPort === 465,
@@ -210,6 +217,14 @@ app.post('/api/debug/smtp-test', async (req, res) => {
         passSet: !!smtpPass,
         toAddress: to || smtpUser
     };
+
+    // If Brevo is configured, test the real send path (mailService routes through Brevo).
+    if (process.env.BREVO_API_KEY) {
+        if (!to) return res.json({ ok: false, config, error: 'Provide {"to":"email"} to send a Brevo test email' });
+        const mailService = require('./services/mailService');
+        const sent = await mailService.sendEmail(to, 'DR Screening — Brevo test', '<p>If you received this, Brevo email works correctly.</p>');
+        return res.json({ ok: sent, transport: 'brevo', config, message: sent ? `Test email sent to ${to} via Brevo` : 'Brevo send failed — check server logs and BREVO_SENDER verification' });
+    }
 
     if (!smtpUser || !smtpPass) {
         return res.json({ ok: false, config, error: 'SMTP_USER or SMTP_PASS not set in environment' });
