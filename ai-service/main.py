@@ -1064,6 +1064,33 @@ async def health():
     }
 
 
+@app.get("/debug/models")
+async def debug_models():
+    """Diagnostic: report which models actually loaded and whether the ensemble will run."""
+    ensemble_active = (local_resnet is not None and local_eff is not None and local_weights is not None)
+    return {
+        "vit_loaded": model is not None,
+        "resnet_loaded": local_resnet is not None,
+        "efficientnet_loaded": local_eff is not None,
+        "ensemble_weights_loaded": local_weights is not None,
+        "ensemble_weights": local_weights,
+        "timm_available": _timm_mod is not None,
+        "ensemble_will_run": ensemble_active,
+        "active_predictor": "local_ensemble" if ensemble_active else "vit_only",
+        "files": {
+            "resnet_path": str(LOCAL_RES_PATH),
+            "resnet_exists": LOCAL_RES_PATH.exists(),
+            "resnet_size_mb": round(LOCAL_RES_PATH.stat().st_size / 1e6, 1) if LOCAL_RES_PATH.exists() else 0,
+            "eff_path": str(LOCAL_EFF_PATH),
+            "eff_exists": LOCAL_EFF_PATH.exists(),
+            "eff_size_mb": round(LOCAL_EFF_PATH.stat().st_size / 1e6, 1) if LOCAL_EFF_PATH.exists() else 0,
+            "weights_path": str(ENSEMBLE_WEIGHTS_PATH),
+            "weights_exists": ENSEMBLE_WEIGHTS_PATH.exists(),
+            "thresholds_exists": THRESHOLDS_PATH.exists(),
+        }
+    }
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     """Predict diabetic retinopathy grade from fundus image"""
