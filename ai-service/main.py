@@ -109,6 +109,8 @@ ENSEMBLE_WEIGHTS_PATH = Path(__file__).resolve().parents[0] / 'models' / 'ensemb
 local_resnet = None
 local_eff = None
 local_weights = None
+RESNET_LOAD_ERROR = None
+EFF_LOAD_ERROR = None
 
 # ── Inline model architectures ──────────────────────────────────────────────
 # Defined here so HuggingFace Spaces never needs to import the training modules.
@@ -352,21 +354,22 @@ def load_model():
         logger.info(f"Model loaded successfully! Classes: {model.config.num_labels}")
         logger.info(f"Label mapping: {model.config.id2label}")
 
-        # Attempt to load local models (ResNet / EfficientNet)
-        try:
-            def _load_state_dict(ckpt_path):
-                """Load checkpoint robustly — handles raw state dict or wrapped {'model_state_dict': ...}."""
-                ck = torch.load(str(ckpt_path), map_location=device, weights_only=False)
-                if isinstance(ck, dict):
-                    for key in ('model_state_dict', 'state_dict', 'model'):
-                        if key in ck:
-                            logger.info(f'Checkpoint {ckpt_path.name}: using key "{key}"')
-                            return ck[key]
-                    # No known wrapper key — assume the whole dict IS the state dict
-                    logger.info(f'Checkpoint {ckpt_path.name}: no wrapper key found, treating as raw state dict')
-                    return ck
-                return ck  # non-dict (OrderedDict etc.)
+        # Attempt to load local models (ResNet / EfficientNet) — each isolated so one
+        # failure never disables the others or the ensemble-weights load.
+        def _load_state_dict(ckpt_path):
+            """Load checkpoint robustly — handles raw state dict or wrapped {'model_state_dict': ...}."""
+            ck = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+            if isinstance(ck, dict):
+                for key in ('model_state_dict', 'state_dict', 'model'):
+                    if key in ck:
+                        logger.info(f'Checkpoint {ckpt_path.name}: using key "{key}"')
+                        return ck[key]
+                logger.info(f'Checkpoint {ckpt_path.name}: no wrapper key, treating as raw state dict')
+                return ck
+            return ck
 
+        # --- ResNet50 ---
+        try:
             if LOCAL_RES_PATH.exists():
                 sd = _load_state_dict(LOCAL_RES_PATH)
                 local = _DRResNet50(num_classes=5)
@@ -376,31 +379,46 @@ def load_model():
                 resnet_gradcam_extractor = ResNetGradCAM(local)
                 logger.info('✓ Loaded local ResNet50 model')
             else:
-                logger.warning(f'ResNet model not found at {LOCAL_RES_PATH}')
+                globals()['RESNET_LOAD_ERROR'] = f'file not found: {LOCAL_RES_PATH}'
+        except Exception as e:
+            globals()['RESNET_LOAD_ERROR'] = repr(e)
+            logger.warning(f'ResNet load failed: {e}')
+            import traceback; traceback.print_exc()
 
-            if LOCAL_EFF_PATH.exists() and _DREfficientNetB3 is not None:
+        # --- EfficientNetB3 ---
+        try:
+            if not LOCAL_EFF_PATH.exists():
+                globals()['EFF_LOAD_ERROR'] = f'file not found: {LOCAL_EFF_PATH}'
+            elif _DREfficientNetB3 is None:
+                globals()['EFF_LOAD_ERROR'] = 'timm/_DREfficientNetB3 unavailable'
+            else:
                 sd2 = _load_state_dict(LOCAL_EFF_PATH)
                 le = _DREfficientNetB3(num_classes=5)
-                le.load_state_dict(sd2, strict=True)
-                le.to(device).eval()
-                globals()['local_eff'] = le
-                logger.info('✓ Loaded local EfficientNetB3 model')
-            elif not LOCAL_EFF_PATH.exists():
-                logger.warning(f'EfficientNet model not found at {LOCAL_EFF_PATH}')
-            elif _DREfficientNetB3 is None:
-                logger.warning('timm not available — EfficientNetB3 skipped')
-
-            # Load ensemble weights if present
-            if ENSEMBLE_WEIGHTS_PATH.exists():
-                try:
-                    lw = json.load(open(ENSEMBLE_WEIGHTS_PATH))
-                    globals()['local_weights'] = lw
-                    logger.info(f'✓ Loaded ensemble weights: {lw}')
-                except Exception as ew:
-                    logger.warning(f'Could not load ensemble weights: {ew}')
+                missing, unexpected = le.load_state_dict(sd2, strict=False)
+                if missing or unexpected:
+                    # Key mismatch = wrong architecture/timm version → predictions would be garbage.
+                    msg = (f'state_dict mismatch — missing={list(missing)[:6]} '
+                           f'unexpected={list(unexpected)[:6]} '
+                           f'(missing={len(missing)}, unexpected={len(unexpected)})')
+                    globals()['EFF_LOAD_ERROR'] = msg
+                    logger.warning(f'EfficientNet {msg}')
+                else:
+                    le.to(device).eval()
+                    globals()['local_eff'] = le
+                    logger.info('✓ Loaded local EfficientNetB3 model')
         except Exception as e:
-            logger.warning(f'Could not load local models: {e}')
+            globals()['EFF_LOAD_ERROR'] = repr(e)
+            logger.warning(f'EfficientNet load failed: {e}')
             import traceback; traceback.print_exc()
+
+        # --- Ensemble weights (independent of model loads) ---
+        try:
+            if ENSEMBLE_WEIGHTS_PATH.exists():
+                lw = json.load(open(ENSEMBLE_WEIGHTS_PATH))
+                globals()['local_weights'] = lw
+                logger.info(f'✓ Loaded ensemble weights: {lw}')
+        except Exception as ew:
+            logger.warning(f'Could not load ensemble weights: {ew}')
         
         return True
         
@@ -1075,8 +1093,11 @@ async def debug_models():
         "ensemble_weights_loaded": local_weights is not None,
         "ensemble_weights": local_weights,
         "timm_available": _timm_mod is not None,
+        "timm_version": getattr(_timm_mod, '__version__', None) if _timm_mod else None,
         "ensemble_will_run": ensemble_active,
         "active_predictor": "local_ensemble" if ensemble_active else "vit_only",
+        "resnet_load_error": RESNET_LOAD_ERROR,
+        "efficientnet_load_error": EFF_LOAD_ERROR,
         "files": {
             "resnet_path": str(LOCAL_RES_PATH),
             "resnet_exists": LOCAL_RES_PATH.exists(),
