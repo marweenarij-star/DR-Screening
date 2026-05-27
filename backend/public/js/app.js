@@ -49,8 +49,10 @@ const api = {
                 ...options,
                 headers
             });
-            
-            if (response.status === 401) {
+
+            // A 401 from the login endpoint is a bad-credentials response that the
+            // login form must display — don't treat it as an expired session.
+            if (response.status === 401 && !url.includes('/auth/login')) {
                 TokenManager.clear();
                 window.location.href = '/views/login.html';
                 return null;

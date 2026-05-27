@@ -72,7 +72,7 @@ router.post('/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                error: 'Identifiants invalides'
+                error: 'Adresse email incorrecte ou inexistante'
             });
         }
         
@@ -93,23 +93,30 @@ router.post('/login', async (req, res) => {
         if (user.account_status === 'inactive') {
             return res.status(403).json({
                 success: false,
-                error: 'Compte désactivé. Contactez l\'administrateur du centre.'
+                error: 'Compte suspendu. Contactez l\'administrateur du centre.'
             });
         }
-        
-        // Verify password
+
+        // Verify password — only reached once we know the email exists, so the
+        // message can be specific to the password.
+        if (!user.password_hash) {
+            return res.status(403).json({
+                success: false,
+                error: 'Compte non activé. Veuillez définir votre mot de passe via le lien d\'activation reçu par email.'
+            });
+        }
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({
                 success: false,
-                error: 'Identifiants invalides'
+                error: 'Mot de passe incorrect'
             });
         }
 
         if (user.is_active === 0) {
             return res.status(403).json({
                 success: false,
-                error: 'Compte désactivé. Contactez le support.'
+                error: 'Compte suspendu. Contactez le support.'
             });
         }
 

@@ -33,8 +33,15 @@
             
             <div class="form-group">
                 <label class="form-label required" for="password">Mot de passe</label>
-                <input type="password" id="password" name="password" class="form-control" 
-                       placeholder="••••••••" required>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" class="form-control"
+                           placeholder="••••••••" required style="padding-right: 2.75rem;">
+                    <button type="button" id="toggle-password" aria-label="Afficher le mot de passe"
+                            title="Afficher / masquer le mot de passe"
+                            style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#6b7280; padding:0.35rem; font-size:1rem; line-height:1;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
                 <div class="invalid-feedback"></div>
             </div>
             
@@ -71,6 +78,18 @@
             const form = document.getElementById('login-form');
             const errorDiv = document.getElementById('login-error');
             const loginBtn = document.getElementById('login-btn');
+
+            // Show / hide password toggle
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.getElementById('toggle-password');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    const show = passwordInput.type === 'password';
+                    passwordInput.type = show ? 'text' : 'password';
+                    toggleBtn.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+                    toggleBtn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+                });
+            }
             
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
