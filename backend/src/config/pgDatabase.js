@@ -38,17 +38,22 @@ pool.on('error', (err) => {
     console.error('[pgDatabase] idle client error:', err.message);
 });
 
-// Replace datetime(<balanced>) with (<balanced>)::timestamptz, honoring nested parens.
-function replaceDatetimeBalanced(sql) {
-    const needle = 'datetime(';
+// Replace fnName(<balanced>) with wrap(<balanced>), honoring nested parens.
+// A word-char before the name (e.g. "update(") is skipped so we only match
+// the standalone function, not a substring of a longer identifier.
+function replaceFuncBalanced(sql, fnName, wrap) {
+    const needle = fnName.toLowerCase() + '(';
+    const lower = sql.toLowerCase();
     let out = '';
     let i = 0;
-    const lower = sql.toLowerCase();
     while (i < sql.length) {
         const idx = lower.indexOf(needle, i);
-        if (idx === -1) {
-            out += sql.slice(i);
-            break;
+        if (idx === -1) { out += sql.slice(i); break; }
+        const prev = idx > 0 ? sql[idx - 1] : '';
+        if (prev && /[A-Za-z0-9_]/.test(prev)) {
+            out += sql.slice(i, idx + needle.length);
+            i = idx + needle.length;
+            continue;
         }
         out += sql.slice(i, idx);
         let depth = 0;
@@ -59,7 +64,7 @@ function replaceDatetimeBalanced(sql) {
             else if (sql[j] === ')') { depth--; if (depth === 0) break; }
         }
         const inner = sql.slice(start, j);
-        out += `(${inner})::timestamptz`;
+        out += wrap(inner);
         i = j + 1;
     }
     return out;
@@ -71,14 +76,18 @@ function translate(sql) {
     // strftime('%s', X) -> epoch seconds
     s = s.replace(/strftime\(\s*'%s'\s*,\s*([^()]+?)\)/gi, 'EXTRACT(EPOCH FROM ($1)::timestamptz)');
 
-    // datetime('now', '<modifier>') -> (now() + interval '<modifier>')
+    // datetime('now', ...) variants
     s = s.replace(/datetime\(\s*'now'\s*,\s*'([^']+)'\s*\)/gi, (_m, mod) => `(now() + interval '${mod}')`);
-    // datetime('now', ?) -> (now() + (?)::interval)  [? becomes $n below]
     s = s.replace(/datetime\(\s*'now'\s*,\s*\?\s*\)/gi, '(now() + (?)::interval)');
-    // datetime('now') -> now()
     s = s.replace(/datetime\(\s*'now'\s*\)/gi, 'now()');
-    // datetime(<expr>) -> (<expr>)::timestamptz  (remaining single-arg forms)
-    s = replaceDatetimeBalanced(s);
+    // date('now', ...) variants -> a DATE value
+    s = s.replace(/date\(\s*'now'\s*,\s*'([^']+)'\s*\)/gi, (_m, mod) => `((now() + interval '${mod}')::date)`);
+    s = s.replace(/date\(\s*'now'\s*,\s*\?\s*\)/gi, '((now() + (?)::interval)::date)');
+    s = s.replace(/date\(\s*'now'\s*\)/gi, 'CURRENT_DATE');
+
+    // Generic single-arg forms (after the 'now' cases are consumed)
+    s = replaceFuncBalanced(s, 'datetime', (inner) => `(${inner})::timestamptz`);
+    s = replaceFuncBalanced(s, 'date', (inner) => `(${inner})::date`);
 
     // SQLite LIKE is case-insensitive; ILIKE matches that behavior in Postgres.
     s = s.replace(/\bLIKE\b/gi, 'ILIKE');
@@ -127,27 +136,22 @@ module.exports = {
     async update(table, data, where, whereParams = []) {
         const keys = Object.keys(data);
         const values = Object.values(data);
-        const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
-        // Renumber the WHERE clause placeholders to continue after the SET values.
-        let n = keys.length;
-        const whereText = where.replace(/\?/g, () => `$${++n}`);
-        const sql = `UPDATE ${table} SET ${setClause} WHERE ${whereText}`;
+        // Build with ? placeholders (SET first, then WHERE) and let translate()
+        // number them and convert any SQLite functions in the WHERE clause.
+        const setClause = keys.map((k) => `${k} = ?`).join(', ');
+        const sql = translate(`UPDATE ${table} SET ${setClause} WHERE ${where}`);
         const res = await pool.query(sql, [...values, ...whereParams]);
         return res.rowCount;
     },
 
     async delete(table, where, whereParams = []) {
-        let n = 0;
-        const whereText = where.replace(/\?/g, () => `$${++n}`);
-        const sql = `DELETE FROM ${table} WHERE ${whereText}`;
+        const sql = translate(`DELETE FROM ${table} WHERE ${where}`);
         const res = await pool.query(sql, whereParams);
         return res.rowCount;
     },
 
     async count(table, where = '1=1', params = []) {
-        let n = 0;
-        const whereText = where.replace(/\?/g, () => `$${++n}`);
-        const sql = `SELECT COUNT(*) as count FROM ${table} WHERE ${whereText}`;
+        const sql = translate(`SELECT COUNT(*) as count FROM ${table} WHERE ${where}`);
         const res = await pool.query(sql, params);
         return res.rows[0] ? parseInt(res.rows[0].count, 10) : 0;
     },

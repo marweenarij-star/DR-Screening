@@ -273,6 +273,7 @@ router.get('/patients-summary', async (req, res) => {
 
         const offset = (page - 1) * perPage;
         const rows = await db.query(`
+            SELECT * FROM (
             SELECT
                 p.id as patient_id,
                 p.full_name,
@@ -388,7 +389,8 @@ router.get('/patients-summary', async (req, res) => {
                 ) as total_exam_count
             FROM patients p
             WHERE ${where}
-            ORDER BY datetime(COALESCE(latest_new_exam_date, latest_pending_date, last_exam_date, p.created_at)) DESC
+            ) sub
+            ORDER BY datetime(COALESCE(sub.latest_new_exam_date, sub.latest_pending_date, sub.last_exam_date, sub.created_at)) DESC
             LIMIT ? OFFSET ?
         `, [doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, doctorId, ...params, perPage, offset]);
 
